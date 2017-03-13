@@ -1,0 +1,15 @@
+snick.cmo : pprinter.cmi parser.cmi lexer.cmo
+snick.cmx : pprinter.cmx parser.cmx lexer.cmx
+ast.cmi :
+parser.cmi : ast.cmi
+pprinter.cmi : ast.cmi
+ast.cmo : ast.cmi
+ast.cmx : ast.cmi
+lexer.cmo : parser.cmi
+lexer.cmx : parser.cmx
+parser.cmo : ast.cmi parser.cmi
+parser.cmx : ast.cmx parser.cmi
+pprinter.cmo : ast.cmi pprinter.cmi
+pprinter.cmx : ast.cmx pprinter.cmi
+snick.cmo : pprinter.cmi parser.cmi lexer.cmo
+snick.cmx : pprinter.cmx parser.cmx lexer.cmx
