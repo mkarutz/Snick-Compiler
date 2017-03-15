@@ -1,4 +1,4 @@
-/* ocamlyacc parser for bean */
+/* ocamlyacc parser for snick */
 %{
 open Ast
 %}
