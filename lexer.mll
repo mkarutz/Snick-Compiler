@@ -8,7 +8,7 @@ let alnum = alpha | '_' | '\'' | digit
 let digits = digit+
 let float = digits '.' digits
 let ident = (alpha | '_') alnum*
-let newline = '\r'?'\n''
+let newline = '\r'?'\n'
 let whitespace = [' ' '\t']+
 let string = '"' ([^ '"' '\t' '\r' '\n']* as str) '"'
 
@@ -50,13 +50,13 @@ rule token = parse
   | '<' { LT }
 	| '>' { GT }
   | '+' { ADD }
-  | '-' { SUB }
+  | '-' { MINUS }
   | '*' { MUL }
 	| '/' { DIV }
   | ';' { SEMICOLON }
+	| ',' { COMMA }
 	| '-'? float as lxm { FLOAT_CONST(float_of_string lxm) }
   | '-'? digits as lxm { INT_CONST(int_of_string lxm) }
 	| string { STRING_CONST(str) }
   | ident as lxm { IDENT lxm }
-	| _ { syntax_error }
   | eof { EOF }

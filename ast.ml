@@ -33,23 +33,26 @@ type const =
 	| BoolConst of bool
 	| FloatConst of float
 	| IntConst of int
-
-type expr =
-  | ConstExpr of const
-	| IdExpr of ident
-  | SubscrExpr of (ident * (expr list))
-  | BinopExpr of (expr * binop * expr)
-  | UnopExpr of (unop * expr)
+	| StringConst of string
 
 type lvalue =
-  | IdLval of ident
-  | SubscrLval of (ident * (expr list))
+  | Id of ident
+  | ArrAccess of (ident * (expr list))
+and expr =
+	| ConstExpr of const
+	| LvalueExpr of lvalue
+	| BinopExpr of (expr * binop * expr)
+	| UnopExpr of (unop * expr)
 
 type stmt =
+	| AtomStmt of atomstmt
+	| CompStmt of compstmt
+and atomstmt =
   | Assign of (lvalue * expr)
   | Read of lvalue
   | Write of expr
 	| Call of (ident * (expr list))
+and compstmt =
 	| IfThenElse of (expr * (stmt list) * (stmt list))
 	| IfThen of (expr * (stmt list))
 	| While of (expr * (stmt list))
