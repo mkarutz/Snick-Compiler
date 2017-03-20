@@ -12,21 +12,21 @@ let print_binop binop =
   match binop with
   | OrBinop -> print_string "or"
   | AndBinop -> print_string "and"
-  | EqBinop -> print_string "="
+  | EqBinop -> print_char '='
   | NeBinop -> print_string "!="
-  | LtBinop -> print_string "<"
-  | GtBinop -> print_string ">"
+  | LtBinop -> print_char '<'
+  | GtBinop -> print_char '>'
   | LteBinop -> print_string "<="
   | GteBinop -> print_string ">="
-  | AddBinop -> print_string "+"
-  | SubBinop -> print_string "-"
-  | MulBinop -> print_string "*"
-  | DivBinop -> print_string "/"
+  | AddBinop -> print_char '+'
+  | SubBinop -> print_char '-'
+  | MulBinop -> print_char '*'
+  | DivBinop -> print_char '/'
 
 let print_unop unop =
   match unop with
   | NotUnop -> print_string "not"
-  | MinusUnop -> print_string "-"
+  | MinusUnop -> print_char '-'
 
 let rec print_indent n =
   if n <= 0 then ()
@@ -35,25 +35,18 @@ let rec print_indent n =
     print_indent (n-1)
   end
 
-let unop_precedence unop =
-  match unop with
-  | MinusUnop -> 7
-  | NotUnop -> 3
-
 let binop_precedence binop =
   match binop with
   | OrBinop -> 1
   | AndBinop -> 2
-  | EqBinop -> 4
-  | NeBinop -> 4
-  | LtBinop -> 4
-  | GtBinop -> 4
-  | LteBinop -> 4
-  | GteBinop -> 4
-  | AddBinop -> 5
-  | SubBinop -> 5
-  | MulBinop -> 6
-  | DivBinop -> 6
+  | EqBinop | NeBinop | LtBinop | GtBinop | LteBinop | GteBinop -> 4
+  | AddBinop | SubBinop -> 5
+  | MulBinop | DivBinop -> 6
+
+let unop_precedence unop =
+  match unop with
+  | NotUnop -> 3
+  | MinusUnop -> 7
 
 let rec print_expr expr =
   match expr with
@@ -63,54 +56,55 @@ let rec print_expr expr =
     print_lvalue lvalue
   | BinopExpr (lhs, binop, rhs) ->
     print_lhs binop lhs ;
-    print_string " " ;
+    print_char ' ' ;
     print_binop binop ;
-    print_string " " ;
+    print_char ' ' ;
     print_rhs binop rhs ;
   | UnopExpr (unop, expr) ->
     print_unop unop ;
-    print_string " " ;
-    print_expr expr
+    print_char ' ' ;
+    print_unary_operand unop expr
 
+(** Prints the left operand of a binary expression, adding parentheses if
+    needed. **)
 and print_lhs parent_binop lhs =
   match lhs with
-  | ConstExpr _ ->
-    print_expr lhs
-  | LvalueExpr _ ->
+  | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
     print_expr lhs
   | BinopExpr (_, binop, _) ->
     if binop_precedence(binop) < binop_precedence(parent_binop) then
-      begin
-        print_char '(' ;
-        print_expr lhs ;
-        print_char ')'
-      end
-    else print_expr lhs
-  | UnopExpr (unop, _) ->
-    if unop_precedence(unop) < binop_precedence(parent_binop) then
-      begin
-        print_char '(' ;
-        print_expr lhs ;
-        print_char ')'
-      end
-    else print_expr lhs
+      print_parens lhs
+    else
+      print_expr lhs
 
+(** Prints the right operand of a binary expression, adding parentheses if
+    needed. **)
 and print_rhs parent_binop rhs =
   match rhs with
-  | ConstExpr _ ->
-    print_expr rhs
-  | LvalueExpr _ ->
+  | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
     print_expr rhs
   | BinopExpr (_, binop, _) ->
     if binop_precedence(binop) <= binop_precedence(parent_binop) then
-      begin
-        print_char '(' ;
-        print_expr rhs ;
-        print_char ')'
-      end
-    else print_expr rhs
-  | UnopExpr (unop, _) ->
-    print_expr rhs
+      print_parens rhs
+    else
+      print_expr rhs
+
+(** Prints the operand of a unary expression, adding parentheses if needed. **)
+and print_unary_operand unop expr =
+  match expr with
+  | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
+    print_expr expr
+  | BinopExpr (_, binop, _) ->
+    if binop_precedence(binop) <= unop_precedence(unop) then
+      print_parens expr
+    else
+      print_expr expr
+
+(** Prints an expression wrapped in parentheses. **)
+and print_parens expr =
+  print_char '(' ;
+  print_expr expr ;
+  print_char ')'
 
 and print_lvalue lvalue =
   match lvalue with
@@ -118,11 +112,11 @@ and print_lvalue lvalue =
     print_string id
   | ArrAccess (id, exprs) ->
     print_string id ;
-    print_string "[" ;
-    print_exprlist exprs ;
-    print_string "]"
+    print_char '[' ;
+    print_expr_list exprs ;
+    print_char ']'
 
-and print_exprlist exprs =
+and print_expr_list exprs =
   match exprs with
   | [] -> ()
   | x::[] ->
@@ -130,7 +124,7 @@ and print_exprlist exprs =
   | x::xs ->
     print_expr x ;
     print_string ", " ;
-    print_exprlist xs
+    print_expr_list xs
 
 let rec print_stmts stmts indent_lvl =
   match stmts with
@@ -144,12 +138,13 @@ and print_stmt stmt indent_lvl =
   | AtomStmt atom ->
     print_indent indent_lvl ;
     print_atom_stmt atom ;
-    print_string ";" ;
+    print_char ';' ;
     print_newline ()
   | CompStmt comp ->
     print_comp_stmt comp indent_lvl ;
     print_newline ()
 
+(** Prints an atomic statement. **)
 and print_atom_stmt stmt =
   match stmt with
   | Assign (lvalue, expr) ->
@@ -165,9 +160,10 @@ and print_atom_stmt stmt =
   | Call (id, exprs) ->
     print_string id ;
     print_string " (" ;
-    print_exprlist exprs ;
-    print_string ")"
+    print_expr_list exprs ;
+    print_char ')'
 
+(** Prints a composite statement. **)
 and print_comp_stmt stmt indent_lvl =
   match stmt with
   | IfThenElse (expr, a, b) ->
@@ -211,33 +207,48 @@ let print_dtype dtype =
   | Float -> print_string "float"
   | Int -> print_string "int"
 
-let print_intervals intervals =
-  print_string "[]"
+let print_interval interval =
+  let (a, b) = interval in
+    print_int a ;
+    print_string ".." ;
+    print_int b
+
+let rec print_interval_list intervals =
+  match intervals with
+  | [] -> ()
+  | x::[] ->
+    print_interval x
+  | x::xs ->
+    print_interval x ;
+    print_string ", " ;
+    print_interval_list xs
 
 let print_decl decl =
   print_indent 1 ;
   match decl with
   | VarDecl (dtype, id) ->
     print_dtype dtype ;
-    print_string " " ;
+    print_char ' ' ;
     print_id id
   | ArrDecl (dtype, id, intervals) ->
     print_dtype dtype ;
-    print_string " " ;
+    print_char ' ' ;
     print_id id ;
-    print_intervals intervals
+    print_char '[' ;
+    print_interval_list intervals ;
+    print_char ']'
 
 let rec print_decls decls =
   match decls with
   | [] -> ()
   | x::[] ->
     print_decl x ;
-    print_string ";" ;
+    print_char ';' ;
     print_newline () ;
     print_newline () ;
   | x::xs ->
     print_decl x ;
-    print_string ";" ;
+    print_char ';' ;
     print_newline () ;
     print_decls xs
 
@@ -252,9 +263,9 @@ let print_parammode mode =
 
 let print_param param =
   print_parammode param.mode ;
-  print_string " " ;
-  print_dtype param.dtype ;
-  print_string " " ;
+  print_char ' ' ;
+  print_dtype param.type_spec ;
+  print_char ' ' ;
   print_id param.id
 
 let rec print_paramslist params =
@@ -268,14 +279,14 @@ let rec print_paramslist params =
     print_paramslist xs
 
 let print_procparams params =
-  print_string "(" ;
+  print_char '(' ;
   print_paramslist params ;
-  print_string ")"
+  print_char ')'
 
 let print_procheader header =
   print_string "proc " ;
   print_string header.id ;
-  print_string " " ;
+  print_char ' ' ;
   print_procparams header.params
 
 let print_proc proc =

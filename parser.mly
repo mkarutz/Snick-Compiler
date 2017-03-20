@@ -1,6 +1,8 @@
 /* ocamlyacc parser for snick */
 %{
 open Ast
+
+exception SyntaxError of string
 %}
 
 %token <bool> BOOL_CONST
@@ -25,136 +27,183 @@ open Ast
 %token UPTO
 %token EOF
 
-%left OR /* lowest precedence */
-%left AND
-%nonassoc NOT
-%nonassoc EQ NE LT LTE GT GTE
-%left ADD MINUS
-%left MUL DIV
-%nonassoc UMINUS /* highest precendence */
-
 %type <Ast.program> program
 
 %start program
 %%
 
 program:
-	procdefs { { procdefs = $1 } }
+  procedure_list { { procdefs = List.rev $1 } }
 
-procdefs:
-	| procdef procdefs { $1 :: $2 }
-	| { [] }
+procedure_list:
+  | procedure_definition { [$1] }
+  | procedure_list procedure_definition {
+    $2 :: $1
+  }
 
-procdef:
-	PROC procheader procbody END { { header = $2; body = $3 } }
+procedure_definition:
+	PROC procedure_header procedure_body END { { header = $2; body = $3 } }
 
-procheader:
-	IDENT LPAREN params RPAREN { { id = $1; params = $3 } }
+procedure_header:
+	identifier LPAREN parameter_list RPAREN { { id = $1; params = List.rev $3 } }
 
-params:
-	| param COMMA params { $1 :: $3 }
-	| param { [$1] }
-	| { [] }
+parameter_list:
+  | { [] }
+  | parameter_definition { [$1] }
+	| parameter_list COMMA parameter_definition { $3 :: $1 }
 
-param:
-  passind dtype ident { { mode = $1; dtype = $2; id = $3 } }
+parameter_definition:
+  reference_specifier type_specifier identifier {
+    { mode = $1; type_spec = $2; id = $3 }
+  }
 
-passind:
+reference_specifier:
 	| VAL { Val }
 	| REF { Ref }
 
-dtype:
+type_specifier:
   | BOOL { Bool }
 	| FLOAT { Float }
   | INT { Int }
 
-ident:
+identifier:
 	IDENT { $1 }
 
-procbody:
-	decls stmts { { decls = $1; stmts = $2 } }
+procedure_body:
+	declaration_list statement_list {
+    { decls = List.rev $1; stmts = List.rev $2 }
+  }
 
-decls:
-  | decl decls { $1 :: $2 }
+declaration_list:
   | { [] }
+  | declaration_list declaration { $2 :: $1 }
 
-decl:
-	| vardecl { $1 }
-	| arrdecl { $1 }
+declaration:
+	| variable_declaration { $1 }
+	| array_declaration { $1 }
 
-vardecl:
-	dtype IDENT SEMICOLON { VarDecl ($1, $2) }
+variable_declaration:
+	type_specifier identifier SEMICOLON { VarDecl ($1, $2) }
 
-arrdecl:
-	dtype IDENT LBRACKET intervals RBRACKET SEMICOLON { ArrDecl ($1, $2, $4) }
+array_declaration:
+	type_specifier identifier LBRACKET interval_list RBRACKET SEMICOLON {
+    ArrDecl ($1, $2, $4)
+  }
 
-intervals:
-	| interval COMMA intervals { $1 :: $3 }
+interval_list:
 	| interval { [$1] }
+	| interval_list COMMA interval { $3 :: $1 }
 
 interval:
 	INT_CONST UPTO INT_CONST { ($1, $3) }
 
-stmts:
-  | stmt stmts { $1 :: $2 }
-  | stmt { [$1] }
+statement_list:
+  | statement { [$1] }
+  | statement_list statement { $2 :: $1 }
+  | statement_list error SEMICOLON { $1 }
 
-stmt:
-	| atomic_stmt { $1 }
-	| comp_stmt { $1 }
+statement:
+  | assignment_statement { AtomStmt $1 }
+  | read_statement { AtomStmt $1 }
+  | write_statement { AtomStmt $1 }
+  | procedure_call_statement { AtomStmt $1 }
+  | selection_statement { CompStmt $1 }
+  | iteration_statement { CompStmt $1 }
 
-atomic_stmt:
-	stmt_body SEMICOLON { AtomStmt $1 }
+assignment_statement:
+	lvalue ASSIGN expression SEMICOLON { Assign ($1, $3) }
 
-stmt_body:
-	| lvalue ASSIGN expr { Assign ($1, $3) }
-  | READ lvalue { Read $2 }
-  | WRITE expr { Write $2 }
-  | IDENT LPAREN exprs RPAREN { Call ($1, $3) }
+read_statement:
+  READ lvalue SEMICOLON { Read $2 }
+
+write_statement:
+  WRITE expression SEMICOLON { Write $2 }
+
+procedure_call_statement:
+  identifier LPAREN expression_list RPAREN SEMICOLON { Call ($1, List.rev $3) }
+
+selection_statement:
+  | IF expression THEN statement_list FI { IfThen ($2, List.rev $4) }
+  | IF expression THEN statement_list ELSE statement_list FI {
+    IfThenElse ($2, List.rev $4, List.rev $6)
+  }
+
+iteration_statement:
+  WHILE expression DO statement_list OD { While ($2, List.rev $4) }
 
 lvalue:
-	| IDENT LBRACKET exprs RBRACKET { ArrAccess ($1, $3) }
-  | IDENT { Id $1 }
+	| identifier LBRACKET expression_list RBRACKET { ArrAccess ($1, List.rev $3) }
+  | identifier { Id $1 }
 
-exprs:
-	| expr COMMA exprs { $1 :: $3 }
-	| expr { [$1] }
+expression_list:
+  | { [] }
+  | expression { [$1] }
+  | expression_list COMMA expression { $3 :: $1 }
 
-expr:
-	| const { ConstExpr $1 }
-	| lvalue { LvalueExpr $1 }
-	| expr OR expr { BinopExpr ($1, OrBinop, $3) }
-	| expr AND expr { BinopExpr ($1, AndBinop, $3) }
-	| expr EQ expr { BinopExpr ($1, EqBinop, $3) }
-	| expr NE expr { BinopExpr ($1, NeBinop, $3) }
-	| expr LTE expr { BinopExpr ($1, LteBinop, $3) }
-	| expr GTE expr { BinopExpr ($1, GteBinop, $3) }
-	| expr LT expr { BinopExpr ($1, LtBinop, $3) }
-	| expr GT expr { BinopExpr ($1, GtBinop, $3) }
-	| expr ADD expr { BinopExpr ($1, AddBinop, $3) }
-	| expr MINUS expr { BinopExpr ($1, SubBinop, $3) }
-	| expr MUL expr { BinopExpr ($1, MulBinop, $3) }
-	| expr DIV expr { BinopExpr ($1, DivBinop, $3) }
-	| NOT expr { UnopExpr (NotUnop, $2) }
-	| MINUS expr %prec UMINUS { UnopExpr (MinusUnop, $2) }
-	| LPAREN expr RPAREN { $2 }
+expression:
+  | disjunctive_expression { $1 }
 
-const:
+primary_expression:
+  | lvalue { LvalueExpr $1 }
+  | constant { ConstExpr $1 }
+  | LPAREN expression RPAREN { $2 }
+
+constant:
 	| BOOL_CONST { BoolConst $1 }
 	| FLOAT_CONST { FloatConst $1 }
 	| INT_CONST { IntConst $1 }
 	| STRING_CONST { StringConst $1 }
 
-comp_stmt:
-	| ifthen { CompStmt $1 }
-	| ifthenelse { CompStmt $1 }
-	| whiledo { CompStmt $1 }
+unary_expression:
+  | primary_expression { $1 }
+  | MINUS unary_expression { UnopExpr (MinusUnop, $2) }
 
-ifthen:
-	IF expr THEN stmts FI { IfThen ($2, $4) }
+multiplicative_expression:
+  | unary_expression { $1 }
+  | multiplicative_expression multiplicative_operator unary_expression {
+    BinopExpr ($1, $2, $3)
+  }
 
-ifthenelse:
-	IF expr THEN stmts ELSE stmts FI { IfThenElse ($2, $4, $6) }
+multiplicative_operator:
+  | MUL { MulBinop }
+  | DIV { DivBinop }
 
-whiledo:
-	WHILE expr DO stmts OD { While ($2, $4) }
+additive_expression:
+  | multiplicative_expression { $1 }
+  | additive_expression additive_operator multiplicative_expression {
+    BinopExpr ($1, $2, $3)
+  }
+
+additive_operator:
+  | ADD { AddBinop }
+  | MINUS { SubBinop }
+
+relational_expression:
+  | additive_expression { $1 }
+  | relational_expression relational_operator additive_expression {
+    BinopExpr ($1, $2, $3)
+  }
+
+relational_operator:
+  | EQ { EqBinop }
+  | NE { NeBinop }
+  | LT { LtBinop }
+  | LTE { LteBinop }
+  | GT { GtBinop }
+  | GTE { GteBinop }
+
+negative_expression:
+  | relational_expression { $1 }
+  | NOT negative_expression { UnopExpr(NotUnop, $2) }
+
+conjunctive_expression:
+  | negative_expression { $1 }
+  | conjunctive_expression AND negative_expression {
+    BinopExpr ($1, AndBinop, $3)
+  }
+
+disjunctive_expression:
+  | conjunctive_expression { $1 }
+  | disjunctive_expression OR conjunctive_expression {
+    BinopExpr ($1, OrBinop, $3)
+  }

@@ -21,13 +21,13 @@ proc main ()
 end
 
 proc p (ref int i)
-	i := 1 + 2 + not 3;
+	i := not x and y -2;
 end
 
 proc q (val float x, ref int k)
 	int n;
 	float y;
-	bool a[1..8];
+	bool a[1..8,3..4];
 	a[8] := true;
 	k := 42;
 end

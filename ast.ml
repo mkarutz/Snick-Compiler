@@ -1,6 +1,6 @@
-type ident = string
+type identifier = string
 
-type dtype =
+type type_spec =
   | Bool
   | Float
   | Int
@@ -8,8 +8,8 @@ type dtype =
 type interval = (int * int)
 
 type decl =
-  | VarDecl of (dtype * ident)
-  | ArrDecl of (dtype * ident * (interval list))
+  | VarDecl of (type_spec * identifier)
+  | ArrDecl of (type_spec * identifier * (interval list))
 
 type binop =
   | OrBinop
@@ -36,8 +36,8 @@ type const =
   | StringConst of string
 
 type lvalue =
-  | Id of ident
-  | ArrAccess of (ident * (expr list))
+  | Id of identifier
+  | ArrAccess of (identifier * (expr list))
 and expr =
   | ConstExpr of const
   | LvalueExpr of lvalue
@@ -45,43 +45,43 @@ and expr =
   | UnopExpr of (unop * expr)
 
 type stmt =
-  | AtomStmt of atomstmt
-  | CompStmt of compstmt
-and atomstmt =
+  | AtomStmt of atom_stmt
+  | CompStmt of comp_stmt
+and atom_stmt =
   | Assign of (lvalue * expr)
   | Read of lvalue
   | Write of expr
-  | Call of (ident * (expr list))
-and compstmt =
+  | Call of (identifier * (expr list))
+and comp_stmt =
   | IfThenElse of (expr * (stmt list) * (stmt list))
   | IfThen of (expr * (stmt list))
   | While of (expr * (stmt list))
 
-type passind =
+type ref_spec =
   | Val
   | Ref
 
-type param = {
-  mode : passind ;
-  dtype : dtype ;
-  id : ident
+type param_def = {
+  mode : ref_spec ;
+  type_spec : type_spec ;
+  id : identifier
 }
 
-type procheader = {
-  id : ident ;
-  params : param list
+type proc_header = {
+  id : identifier ;
+  params : param_def list
 }
 
-type procbody = {
+type proc_body = {
   decls : decl list ;
   stmts : stmt list
 }
 
-type procdef = {
-  header : procheader ;
-  body : procbody ;
+type proc_def = {
+  header : proc_header ;
+  body : proc_body ;
 }
 
 type program = {
-  procdefs : procdef list ;
+  procdefs : proc_def list ;
 }
