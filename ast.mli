@@ -1,4 +1,12 @@
+(**
+ * File: ast.mli
+ * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
+ *
+ * Implementation of the Snick abstract syntax tree.
+ *)
+
 type identifier = string
+type lexeme = string
 
 type type_spec =
   | Bool
@@ -29,11 +37,15 @@ type unop =
   | NotUnop
   | MinusUnop
 
-type const =
-  | BoolConst of bool
-  | FloatConst of float
-  | IntConst of int
-  | StringConst of string
+type const = {
+  value: value;
+  raw: string;
+}
+and value =
+  | Boolean of bool
+  | Float of float
+  | Integer of int
+  | String of string
 
 type lvalue =
   | Id of identifier
@@ -68,7 +80,7 @@ type param_def = {
 }
 
 type proc_header = {
-  id : identifier ;
+  proc_id : identifier ;
   params : param_def list
 }
 

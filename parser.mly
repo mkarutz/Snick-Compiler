@@ -1,13 +1,18 @@
-/* ocamlyacc parser for snick */
+/**
+ * File: parser.mly
+ * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
+ *
+ * Definition of parser for the Snick compiler. The parser reads a stream of
+ * tokens from the tokenizer and constructs a Snick Ast.
+ */
+
 %{
 open Ast
-
-exception SyntaxError of string
 %}
 
-%token <bool> BOOL_CONST
-%token <float> FLOAT_CONST
-%token <int> INT_CONST
+%token <string> BOOL_CONST
+%token <string> FLOAT_CONST
+%token <string> INT_CONST
 %token <string> STRING_CONST
 %token <string> IDENT
 %token BOOL FLOAT INT
@@ -45,7 +50,9 @@ procedure_definition:
 	PROC procedure_header procedure_body END { { header = $2; body = $3 } }
 
 procedure_header:
-	identifier LPAREN parameter_list RPAREN { { id = $1; params = List.rev $3 } }
+	identifier LPAREN parameter_list RPAREN {
+    { proc_id = $1; params = List.rev $3 }
+  }
 
 parameter_list:
   | { [] }
@@ -95,12 +102,11 @@ interval_list:
 	| interval_list COMMA interval { $3 :: $1 }
 
 interval:
-	INT_CONST UPTO INT_CONST { ($1, $3) }
+	INT_CONST UPTO INT_CONST { (int_of_string $1, int_of_string $3) }
 
 statement_list:
   | statement { [$1] }
   | statement_list statement { $2 :: $1 }
-  | statement_list error SEMICOLON { $1 }
 
 statement:
   | assignment_statement { AtomStmt $1 }
@@ -149,10 +155,18 @@ primary_expression:
   | LPAREN expression RPAREN { $2 }
 
 constant:
-	| BOOL_CONST { BoolConst $1 }
-	| FLOAT_CONST { FloatConst $1 }
-	| INT_CONST { IntConst $1 }
-	| STRING_CONST { StringConst $1 }
+	| BOOL_CONST {
+    { value = Boolean (bool_of_string $1); raw = $1 }
+  }
+	| FLOAT_CONST {
+    { value = Float (float_of_string $1); raw = $1 }
+  }
+	| INT_CONST {
+    { value = Integer (int_of_string $1); raw = $1 }
+  }
+	| STRING_CONST {
+    { value = String $1; raw = $1 }
+  }
 
 unary_expression:
   | primary_expression { $1 }

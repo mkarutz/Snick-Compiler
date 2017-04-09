@@ -1,0 +1,28 @@
+# Prompts for n, then pints the nth fibonacci number.
+
+proc main()
+    int n;
+    int m;
+
+    write ">";
+    read n;
+    fib(n, m);
+    write m;
+    write "\n";
+end
+
+# Procedure fib computes the nth fibonacci number.
+# The result is returned in out.
+
+proc fib(val int n, ref int out)
+    int f1;
+    int f2;
+
+    if n <= 1 then
+        out := n;
+    else
+        fib(n - 2, f1);
+        fib(n - 1, f2);
+        out := f1 + f2;
+    fi
+end

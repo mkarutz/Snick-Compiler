@@ -1,3 +1,16 @@
+(**
+ * File: lexer.mll
+ * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
+ *
+ * Definition of lexer (tokenizer) for the Snick compiler. This lexer reads a
+ * Snick source program and:
+ * <ul>
+ *   <li> creates tokens for the Parser module
+ *   <li> discards comments and whitespace
+ *   <li> tracks line numbers for error reporting
+ * </ul>
+ *)
+
 {
 open Parser
 }
@@ -11,16 +24,18 @@ let ident = (alpha | '_') alnum*
 let newline = '\r'?'\n'
 let whitespace = [' ' '\t']+
 let string = '"' ([^ '"' '\t' '\r' '\n']* as str) '"'
+let comment = '#' [^ '\r' '\n']*
 
 rule token = parse
-  whitespace { token lexbuf }
-  | newline { Lexing.new_line lexbuf ; token lexbuf }
+  whitespace { token lexbuf (* discard and continue lexing *) }
+  | comment { token lexbuf (* discard and continue lexing *) }
+  | newline { Lexing.new_line lexbuf ; token lexbuf (* track line number *) }
 	| "and" { AND }
 	| "bool" { BOOL }
 	| "do" { DO }
 	| "else" { ELSE }
 	| "end" { END }
-	| "false" { BOOL_CONST(true) }
+	| "false" as lxm { BOOL_CONST lxm }
 	| "fi" { FI }
 	| "float" { FLOAT }
 	| "if" { IF }
@@ -32,7 +47,7 @@ rule token = parse
 	| "read" { READ }
 	| "ref" { REF }
 	| "then" { THEN }
-	| "true" { BOOL_CONST(true) }
+	| "true" as lxm { BOOL_CONST lxm }
 	| "val" { VAL }
 	| "while" { WHILE }
 	| "write" { WRITE }
@@ -55,8 +70,8 @@ rule token = parse
 	| '/' { DIV }
   | ';' { SEMICOLON }
 	| ',' { COMMA }
-	| '-'? float as lxm { FLOAT_CONST(float_of_string lxm) }
-  | '-'? digits as lxm { INT_CONST(int_of_string lxm) }
-	| string { STRING_CONST(str) }
+	| '-'? float as lxm { FLOAT_CONST lxm }
+  | '-'? digits as lxm { INT_CONST lxm }
+	| string { STRING_CONST str }
   | ident as lxm { IDENT lxm }
   | eof { EOF }

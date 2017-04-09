@@ -6,7 +6,7 @@ proc main ()
 		m := n;
 		while m > 0 do
 			if m > 0 then
-				n := n - 1;
+				n := (2 * n) / 2;
 				m := m - 1;
 
 				if m = 0 then
@@ -21,7 +21,7 @@ proc main ()
 end
 
 proc p (ref int i)
-	i := not x and y -2;
+	i := i - 2;
 end
 
 proc q (val float x, ref int k)

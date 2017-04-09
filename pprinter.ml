@@ -1,40 +1,51 @@
+(**
+ * File: pprinter.ml
+ * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
+ *
+ * Implementation of pretty printer module for the Snick compiler. This module
+ * exports one function, <code>print_program</code>, that pretty-prints a
+ * parsed Snick program using the given Formatter.
+ *)
+
 open Ast
 open Format
 
-let print_const const =
-  match const with
-  | BoolConst x -> print_bool x
-  | FloatConst x -> print_float x
-  | IntConst x -> print_int x
-  | StringConst x -> print_string x
+(* Some aliases for pretty-printing functions in the Formatter module. *)
+let open_vbox fmt () = pp_open_vbox fmt 0
+let open_hbox fmt () = pp_open_hbox fmt ()
+let close_box fmt () = pp_close_box fmt ()
+let print_space fmt () = pp_print_space fmt ()
+let print_break fmt indent = pp_print_break fmt 0 indent
+let print_string fmt x = pp_print_string fmt x
+let print_char fmt x = pp_print_char fmt x
+let print_int fmt x = pp_print_int fmt x
 
-let print_binop binop =
+(* Prints a Snick constant. *)
+let print_const fmt const = print_string fmt const.raw
+
+(* Prints a Snick binary operator. *)
+let print_binop fmt binop =
   match binop with
-  | OrBinop -> print_string "or"
-  | AndBinop -> print_string "and"
-  | EqBinop -> print_char '='
-  | NeBinop -> print_string "!="
-  | LtBinop -> print_char '<'
-  | GtBinop -> print_char '>'
-  | LteBinop -> print_string "<="
-  | GteBinop -> print_string ">="
-  | AddBinop -> print_char '+'
-  | SubBinop -> print_char '-'
-  | MulBinop -> print_char '*'
-  | DivBinop -> print_char '/'
+  | OrBinop -> print_string fmt "or"
+  | AndBinop -> print_string fmt "and"
+  | EqBinop -> print_char fmt '='
+  | NeBinop -> print_string fmt "!="
+  | LtBinop -> print_char fmt '<'
+  | GtBinop -> print_char fmt '>'
+  | LteBinop -> print_string fmt "<="
+  | GteBinop -> print_string fmt ">="
+  | AddBinop -> print_char fmt '+'
+  | SubBinop -> print_char fmt '-'
+  | MulBinop -> print_char fmt '*'
+  | DivBinop -> print_char fmt '/'
 
-let print_unop unop =
+(* Prints a Snick unary operator. *)
+let print_unop fmt unop =
   match unop with
-  | NotUnop -> print_string "not"
-  | MinusUnop -> print_char '-'
+  | NotUnop -> print_string fmt "not"
+  | MinusUnop -> print_char fmt '-'
 
-let rec print_indent n =
-  if n <= 0 then ()
-  else begin
-    print_string "    " ;
-    print_indent (n-1)
-  end
-
+(* Returns the precedence level of a Snick binary operator *)
 let binop_precedence binop =
   match binop with
   | OrBinop -> 1
@@ -43,267 +54,342 @@ let binop_precedence binop =
   | AddBinop | SubBinop -> 5
   | MulBinop | DivBinop -> 6
 
+(* Returns the precedence level of a Snick unary operator *)
 let unop_precedence unop =
   match unop with
   | NotUnop -> 3
   | MinusUnop -> 7
 
-let rec print_expr expr =
+(* Pretty prints a Snick expression. *)
+let rec print_expr fmt expr =
   match expr with
   | ConstExpr const ->
-    print_const const
+    print_const fmt const
   | LvalueExpr lvalue ->
-    print_lvalue lvalue
+    print_lvalue fmt lvalue
   | BinopExpr (lhs, binop, rhs) ->
-    print_lhs binop lhs ;
-    print_char ' ' ;
-    print_binop binop ;
-    print_char ' ' ;
-    print_rhs binop rhs ;
+    open_hbox fmt () ;
+    print_lhs fmt binop lhs ;
+    print_space fmt () ;
+    print_binop fmt binop ;
+    print_space fmt () ;
+    print_rhs fmt binop rhs ;
+    close_box fmt ()
   | UnopExpr (unop, expr) ->
-    print_unop unop ;
-    print_char ' ' ;
-    print_unary_operand unop expr
+    open_hbox fmt () ;
+    print_unop fmt unop ;
+    print_space fmt () ;
+    print_unary_operand fmt unop expr ;
+    close_box fmt ()
 
-(** Prints the left operand of a binary expression, adding parentheses if
-    needed. **)
-and print_lhs parent_binop lhs =
+(* Prints the left operand of a binary expression, adding parentheses if
+ * needed. *)
+and print_lhs fmt parent_binop lhs =
   match lhs with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
-    print_expr lhs
+    print_expr fmt lhs
   | BinopExpr (_, binop, _) ->
     if binop_precedence(binop) < binop_precedence(parent_binop) then
-      print_parens lhs
+      print_parens fmt lhs
     else
-      print_expr lhs
+      print_expr fmt lhs
 
-(** Prints the right operand of a binary expression, adding parentheses if
-    needed. **)
-and print_rhs parent_binop rhs =
+(* Prints the right operand of a binary expression, adding parentheses if
+ * needed. *)
+and print_rhs fmt parent_binop rhs =
   match rhs with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
-    print_expr rhs
+    print_expr fmt rhs
   | BinopExpr (_, binop, _) ->
     if binop_precedence(binop) <= binop_precedence(parent_binop) then
-      print_parens rhs
+      print_parens fmt rhs
     else
-      print_expr rhs
+      print_expr fmt rhs
 
-(** Prints the operand of a unary expression, adding parentheses if needed. **)
-and print_unary_operand unop expr =
+(* Prints the operand of a unary expression, adding parentheses if needed. *)
+and print_unary_operand fmt unop expr =
   match expr with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
-    print_expr expr
+    print_expr fmt expr
   | BinopExpr (_, binop, _) ->
     if binop_precedence(binop) <= unop_precedence(unop) then
-      print_parens expr
+      print_parens fmt expr
     else
-      print_expr expr
+      print_expr fmt expr
 
-(** Prints an expression wrapped in parentheses. **)
-and print_parens expr =
-  print_char '(' ;
-  print_expr expr ;
-  print_char ')'
+(* Prints an expression wrapped in parentheses. *)
+and print_parens fmt expr =
+  open_hbox fmt () ;
+  print_char fmt '(' ;
+  print_expr fmt expr ;
+  print_char fmt ')' ;
+  close_box fmt ()
 
-and print_lvalue lvalue =
+and print_lvalue fmt lvalue =
   match lvalue with
   | Id id ->
-    print_string id
+    print_string fmt id
   | ArrAccess (id, exprs) ->
-    print_string id ;
-    print_char '[' ;
-    print_expr_list exprs ;
-    print_char ']'
+    open_hbox fmt () ;
+    print_string fmt id ;
+    print_char fmt '[' ;
+    print_expr_list fmt exprs ;
+    print_char fmt ']' ;
+    close_box fmt ()
 
-and print_expr_list exprs =
+(* Pretty prints a comma-separated list of arguments in a Snick procedure call
+ * statement. *)
+and print_expr_list fmt exprs =
   match exprs with
   | [] -> ()
   | x::[] ->
-    print_expr x
+    print_expr fmt x
   | x::xs ->
-    print_expr x ;
-    print_string ", " ;
-    print_expr_list xs
+    open_hbox fmt () ;
+    print_expr fmt x ;
+    print_string fmt ", " ;
+    print_expr_list fmt xs ;
+    close_box fmt ()
 
-let rec print_stmts stmts indent_lvl =
+(* Pretty prints a list of Snick statements. *)
+let rec print_stmts fmt stmts =
   match stmts with
   | [] -> ()
+  | x::[] ->
+    print_stmt fmt x;
   | x::xs ->
-    print_stmt x indent_lvl;
-    print_stmts xs indent_lvl
+    open_vbox fmt () ;
+    print_stmt fmt x;
+    print_break fmt 0 ;
+    print_stmts fmt xs ;
+    close_box fmt ()
 
-and print_stmt stmt indent_lvl =
+(* Pretty prints a Snick statement. *)
+and print_stmt fmt stmt =
   match stmt with
   | AtomStmt atom ->
-    print_indent indent_lvl ;
-    print_atom_stmt atom ;
-    print_char ';' ;
-    print_newline ()
+    open_hbox fmt () ;
+    print_atom_stmt fmt atom ;
+    print_char fmt ';' ;
+    close_box fmt ()
   | CompStmt comp ->
-    print_comp_stmt comp indent_lvl ;
-    print_newline ()
+    print_comp_stmt fmt comp
 
-(** Prints an atomic statement. **)
-and print_atom_stmt stmt =
+(* Pretty prints an atomic Snick statement. *)
+and print_atom_stmt fmt stmt =
   match stmt with
   | Assign (lvalue, expr) ->
-    print_lvalue lvalue ;
-    print_string " := " ;
-    print_expr expr ;
+    open_hbox fmt () ;
+    print_lvalue fmt lvalue ;
+    print_string fmt " := " ;
+    print_expr fmt expr ;
+    close_box fmt ()
   | Read lvalue ->
-    print_string "read " ;
-    print_lvalue lvalue ;
+    open_hbox fmt () ;
+    print_string fmt "read " ;
+    print_lvalue fmt lvalue ;
+    close_box fmt ()
   | Write expr ->
-    print_string "write " ;
-    print_expr expr ;
+    open_hbox fmt () ;
+    print_string fmt "write " ;
+    print_expr fmt expr ;
+    close_box fmt ()
   | Call (id, exprs) ->
-    print_string id ;
-    print_string " (" ;
-    print_expr_list exprs ;
-    print_char ')'
+    open_hbox fmt () ;
+    print_string fmt id ;
+    print_char fmt '(' ;
+    print_expr_list fmt exprs ;
+    print_char fmt ')' ;
+    close_box fmt ()
 
-(** Prints a composite statement. **)
-and print_comp_stmt stmt indent_lvl =
+(* Pretty prints a Snick iteration or selection statement. *)
+and print_comp_stmt fmt stmt =
   match stmt with
   | IfThenElse (expr, a, b) ->
-    print_indent indent_lvl ;
-    print_string "if " ;
-    print_expr expr ;
-    print_string " then" ;
-    print_newline () ;
-    print_stmts a (indent_lvl + 1) ;
-    print_indent indent_lvl ;
-    print_string "else" ;
-    print_newline () ;
-    print_stmts b (indent_lvl + 1) ;
-    print_indent indent_lvl ;
-    print_string "fi" ;
+    open_vbox fmt () ;
+    open_hbox fmt () ;
+    print_string fmt "if" ;
+    print_space fmt () ;
+    print_expr fmt expr ;
+    print_space fmt () ;
+    print_string fmt "then" ;
+    close_box fmt () ;
+    print_break fmt 4 ;
+    print_stmts fmt a ;
+    print_break fmt 0 ;
+    print_string fmt "else" ;
+    print_break fmt 4 ;
+    print_stmts fmt b ;
+    print_break fmt 0 ;
+    print_string fmt "fi" ;
+    close_box fmt ()
   | IfThen (expr, stmts) ->
-    print_indent indent_lvl ;
-    print_string "if " ;
-    print_expr expr ;
-    print_string " then" ;
-    print_newline () ;
-    print_stmts stmts (indent_lvl + 1) ;
-    print_indent indent_lvl ;
-    print_string "fi" ;
+    open_vbox fmt () ;
+    open_hbox fmt () ;
+    print_string fmt "if" ;
+    print_space fmt () ;
+    print_expr fmt expr ;
+    print_space fmt () ;
+    print_string fmt "then" ;
+    close_box fmt () ;
+    print_break fmt 4 ;
+    print_stmts fmt stmts ;
+    print_break fmt 0 ;
+    print_string fmt "fi" ;
+    close_box fmt ()
   | While (expr, stmts) ->
-    print_indent indent_lvl ;
-    print_string "while " ;
-    print_expr expr ;
-    print_string " do" ;
-    print_newline () ;
-    print_stmts stmts (indent_lvl + 1) ;
-    print_indent indent_lvl ;
-    print_string "od"
+    open_vbox fmt () ;
+    open_hbox fmt () ;
+    print_string fmt "while" ;
+    print_space fmt () ;
+    print_expr fmt expr ;
+    print_space fmt () ;
+    print_string fmt "do" ;
+    close_box fmt () ;
+    print_break fmt 4 ;
+    print_stmts fmt stmts ;
+    print_break fmt 0 ;
+    print_string fmt "od" ;
+    close_box fmt ()
 
-let print_id id =
-  print_string id
+let print_id fmt id =
+  print_string fmt id
 
-let print_dtype dtype =
+let print_dtype fmt dtype =
   match dtype with
-  | Bool -> print_string "bool"
-  | Float -> print_string "float"
-  | Int -> print_string "int"
+  | Bool -> print_string fmt "bool"
+  | Float -> print_string fmt "float"
+  | Int -> print_string fmt "int"
 
-let print_interval interval =
+(* Pretty prints an interval in a Snick array declaration. *)
+let print_interval fmt interval =
   let (a, b) = interval in
-    print_int a ;
-    print_string ".." ;
-    print_int b
+    open_hbox fmt () ;
+    print_int fmt a ;
+    print_string fmt ".." ;
+    print_int fmt b ;
+    close_box fmt ()
 
-let rec print_interval_list intervals =
+(* Pretty prints the list of intervals in a Snick array declaration. *)
+let rec print_interval_list fmt intervals =
   match intervals with
   | [] -> ()
   | x::[] ->
-    print_interval x
+    print_interval fmt x
   | x::xs ->
-    print_interval x ;
-    print_string ", " ;
-    print_interval_list xs
+    open_hbox fmt () ;
+    print_interval fmt x ;
+    print_string fmt "," ;
+    print_space fmt () ;
+    print_interval_list fmt xs ;
+    close_box fmt ()
 
-let print_decl decl =
-  print_indent 1 ;
+(* Prints a Snick variable or array declaration. *)
+let print_decl fmt decl =
   match decl with
   | VarDecl (dtype, id) ->
-    print_dtype dtype ;
-    print_char ' ' ;
-    print_id id
+    open_hbox fmt () ;
+    print_dtype fmt dtype ;
+    print_space fmt () ;
+    print_id fmt id ;
+    close_box fmt ()
   | ArrDecl (dtype, id, intervals) ->
-    print_dtype dtype ;
-    print_char ' ' ;
-    print_id id ;
-    print_char '[' ;
-    print_interval_list intervals ;
-    print_char ']'
+    open_hbox fmt () ;
+    print_dtype fmt dtype ;
+    print_space fmt () ;
+    print_id fmt id ;
+    print_char fmt '[' ;
+    print_interval_list fmt intervals ;
+    print_char fmt ']' ;
+    close_box fmt ()
 
-let rec print_decls decls =
+(* Prints a list of Snick variable and array declaration. *)
+let rec print_decls fmt decls =
   match decls with
   | [] -> ()
-  | x::[] ->
-    print_decl x ;
-    print_char ';' ;
-    print_newline () ;
-    print_newline () ;
   | x::xs ->
-    print_decl x ;
-    print_char ';' ;
-    print_newline () ;
-    print_decls xs
+    open_vbox fmt () ;
+    print_decl fmt x ;
+    print_string fmt ";" ;
+    print_break fmt 0 ;
+    print_decls fmt xs ;
+    close_box fmt ()
 
-let print_procbody body =
-  print_decls body.decls ;
-  print_stmts body.stmts 1
+(* Prints the body of a Snick procedure definition. *)
+let print_procbody fmt body =
+  open_vbox fmt () ;
+  print_decls fmt body.decls ;
+  print_break fmt 0 ;
+  print_stmts fmt body.stmts ;
+  close_box fmt ()
 
-let print_parammode mode =
+(* Prints the mode qualifier of a paramter. *)
+let print_parammode fmt mode =
   match mode with
-  | Val -> print_string "val"
-  | Ref -> print_string "ref"
+  | Val -> print_string fmt "val"
+  | Ref -> print_string fmt "ref"
 
-let print_param param =
-  print_parammode param.mode ;
-  print_char ' ' ;
-  print_dtype param.type_spec ;
-  print_char ' ' ;
-  print_id param.id
+(* Prints a parameter definition. *)
+let print_param fmt param =
+  open_hbox fmt () ;
+  print_parammode fmt param.mode ;
+  print_space fmt () ;
+  print_dtype fmt param.type_spec ;
+  print_space fmt () ;
+  print_id fmt param.id ;
+  close_box fmt ()
 
-let rec print_paramslist params =
+(* Pretty prints the parameter definitions for a Snick procedures definition. *)
+let rec print_procparams fmt params =
+  open_hbox fmt () ;
+  print_char fmt '(' ;
+  print_procparams' fmt params ;
+  print_char fmt ')' ;
+  close_box fmt ()
+and print_procparams' fmt params =
   match params with
   | [] -> ()
   | x::[] ->
-    print_param x
+    print_param fmt x ;
   | x::xs ->
-    print_param x ;
-    print_string ", " ;
-    print_paramslist xs
+    open_hbox fmt () ;
+    print_param fmt x ;
+    print_string fmt "," ;
+    print_space fmt () ;
+    print_procparams' fmt xs ;
+    close_box fmt ()
 
-let print_procparams params =
-  print_char '(' ;
-  print_paramslist params ;
-  print_char ')'
+(* Pretty prints the header of a Snick procedure definitions. *)
+let print_procheader fmt header =
+  open_hbox fmt () ;
+  print_string fmt "proc" ;
+  print_space fmt () ;
+  print_string fmt header.proc_id ;
+  print_space fmt () ;
+  print_procparams fmt header.params ;
+  close_box fmt ()
 
-let print_procheader header =
-  print_string "proc " ;
-  print_string header.id ;
-  print_char ' ' ;
-  print_procparams header.params
+(* Pretty prints a Snick procedures definition. *)
+let print_proc fmt proc =
+  open_vbox fmt () ;
+  print_procheader fmt proc.header ;
+  print_break fmt 4 ;
+  print_procbody fmt proc.body ;
+  print_break fmt 0 ;
+  print_string fmt "end" ;
+  close_box fmt ()
 
-let print_proc proc =
-  print_procheader proc.header ;
-  print_newline () ;
-  print_procbody proc.body ;
-  print_string "end" ;
-  print_newline ()
-
-let rec print_procs procs =
+(* Pretty prints a list of Snick procedures definitions. *)
+let rec print_procs fmt procs =
   match procs with
   | [] -> ()
-  | x::[] ->
-    print_proc x
   | x::xs ->
-    print_proc x ;
-    print_newline () ;
-    print_procs xs
+    open_vbox fmt () ;
+    print_proc fmt x ;
+    print_break fmt 0 ;
+    print_break fmt 0 ;
+    print_procs fmt xs ;
+    close_box fmt ()
 
-let print_program fmt prog = print_procs (prog.procdefs)
+(* Pretty prints the given Snick program. *)
+let print_program fmt prog = print_procs fmt prog.procdefs
