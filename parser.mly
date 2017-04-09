@@ -47,17 +47,17 @@ procedure_list:
   }
 
 procedure_definition:
-	PROC procedure_header procedure_body END { { header = $2; body = $3 } }
+  PROC procedure_header procedure_body END { { header = $2; body = $3 } }
 
 procedure_header:
-	identifier LPAREN parameter_list RPAREN {
+  identifier LPAREN parameter_list RPAREN {
     { proc_id = $1; params = List.rev $3 }
   }
 
 parameter_list:
   | { [] }
   | parameter_definition { [$1] }
-	| parameter_list COMMA parameter_definition { $3 :: $1 }
+  | parameter_list COMMA parameter_definition { $3 :: $1 }
 
 parameter_definition:
   reference_specifier type_specifier identifier {
@@ -65,19 +65,19 @@ parameter_definition:
   }
 
 reference_specifier:
-	| VAL { Val }
-	| REF { Ref }
+  | VAL { Val }
+  | REF { Ref }
 
 type_specifier:
   | BOOL { Bool }
-	| FLOAT { Float }
+  | FLOAT { Float }
   | INT { Int }
 
 identifier:
-	IDENT { $1 }
+  IDENT { $1 }
 
 procedure_body:
-	declaration_list statement_list {
+  declaration_list statement_list {
     { decls = List.rev $1; stmts = List.rev $2 }
   }
 
@@ -86,23 +86,23 @@ declaration_list:
   | declaration_list declaration { $2 :: $1 }
 
 declaration:
-	| variable_declaration { $1 }
-	| array_declaration { $1 }
+  | variable_declaration { $1 }
+  | array_declaration { $1 }
 
 variable_declaration:
-	type_specifier identifier SEMICOLON { VarDecl ($1, $2) }
+  type_specifier identifier SEMICOLON { VarDecl ($1, $2) }
 
 array_declaration:
-	type_specifier identifier LBRACKET interval_list RBRACKET SEMICOLON {
+  type_specifier identifier LBRACKET interval_list RBRACKET SEMICOLON {
     ArrDecl ($1, $2, $4)
   }
 
 interval_list:
-	| interval { [$1] }
-	| interval_list COMMA interval { $3 :: $1 }
+  | interval { [$1] }
+  | interval_list COMMA interval { $3 :: $1 }
 
 interval:
-	INT_CONST UPTO INT_CONST { (int_of_string $1, int_of_string $3) }
+  INT_CONST UPTO INT_CONST { (int_of_string $1, int_of_string $3) }
 
 statement_list:
   | statement { [$1] }
@@ -117,7 +117,7 @@ statement:
   | iteration_statement { CompStmt $1 }
 
 assignment_statement:
-	lvalue ASSIGN expression SEMICOLON { Assign ($1, $3) }
+  lvalue ASSIGN expression SEMICOLON { Assign ($1, $3) }
 
 read_statement:
   READ lvalue SEMICOLON { Read $2 }
@@ -138,7 +138,7 @@ iteration_statement:
   WHILE expression DO statement_list OD { While ($2, List.rev $4) }
 
 lvalue:
-	| identifier LBRACKET expression_list RBRACKET { ArrAccess ($1, List.rev $3) }
+  | identifier LBRACKET expression_list RBRACKET { ArrAccess ($1, List.rev $3) }
   | identifier { Id $1 }
 
 expression_list:
@@ -155,16 +155,16 @@ primary_expression:
   | LPAREN expression RPAREN { $2 }
 
 constant:
-	| BOOL_CONST {
+  | BOOL_CONST {
     { value = Boolean (bool_of_string $1); raw = $1 }
   }
-	| FLOAT_CONST {
+  | FLOAT_CONST {
     { value = Float (float_of_string $1); raw = $1 }
   }
-	| INT_CONST {
+  | INT_CONST {
     { value = Integer (int_of_string $1); raw = $1 }
   }
-	| STRING_CONST {
+  | STRING_CONST {
     { value = String $1; raw = $1 }
   }
 
