@@ -30,48 +30,48 @@ rule token = parse
   whitespace { token lexbuf (* discard and continue lexing *) }
   | comment { token lexbuf (* discard and continue lexing *) }
   | newline { Lexing.new_line lexbuf ; token lexbuf (* track line number *) }
-	| "and" { AND }
-	| "bool" { BOOL }
-	| "do" { DO }
-	| "else" { ELSE }
-	| "end" { END }
-	| "false" as lxm { BOOL_CONST lxm }
-	| "fi" { FI }
-	| "float" { FLOAT }
-	| "if" { IF }
-	| "int" { INT }
-	| "not" { NOT }
-	| "od" { OD }
-	| "or" { OR }
-	| "proc" { PROC }
-	| "read" { READ }
-	| "ref" { REF }
-	| "then" { THEN }
-	| "true" as lxm { BOOL_CONST lxm }
-	| "val" { VAL }
-	| "while" { WHILE }
-	| "write" { WRITE }
+  | "and" { AND }
+  | "bool" { BOOL }
+  | "do" { DO }
+  | "else" { ELSE }
+  | "end" { END }
+  | "false" as lxm { BOOL_CONST lxm }
+  | "fi" { FI }
+  | "float" { FLOAT }
+  | "if" { IF }
+  | "int" { INT }
+  | "not" { NOT }
+  | "od" { OD }
+  | "or" { OR }
+  | "proc" { PROC }
+  | "read" { READ }
+  | "ref" { REF }
+  | "then" { THEN }
+  | "true" as lxm { BOOL_CONST lxm }
+  | "val" { VAL }
+  | "while" { WHILE }
+  | "write" { WRITE }
   | "bool" { BOOL }
   | "int" { INT }
   | ":=" { ASSIGN }
-	| "<=" { LTE }
-	| ">=" { GTE }
-	| ".." { UPTO }
+  | "<=" { LTE }
+  | ">=" { GTE }
+  | ".." { UPTO }
   | '(' { LPAREN }
   | ')' { RPAREN }
-	| '[' { LBRACKET }
-	| ']' { RBRACKET }
+  | '[' { LBRACKET }
+  | ']' { RBRACKET }
   | '=' { EQ }
   | '<' { LT }
-	| '>' { GT }
+  | '>' { GT }
   | '+' { ADD }
   | '-' { MINUS }
   | '*' { MUL }
-	| '/' { DIV }
+  | '/' { DIV }
   | ';' { SEMICOLON }
-	| ',' { COMMA }
-	| '-'? float as lxm { FLOAT_CONST lxm }
+  | ',' { COMMA }
+  | '-'? float as lxm { FLOAT_CONST lxm }
   | '-'? digits as lxm { INT_CONST lxm }
-	| string { STRING_CONST str }
+  | string { STRING_CONST str }
   | ident as lxm { IDENT lxm }
   | eof { EOF }
