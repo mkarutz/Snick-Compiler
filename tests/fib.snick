@@ -26,3 +26,4 @@ proc fib(val int n, ref int out)
         out := f1 + f2;
     fi
 end
+

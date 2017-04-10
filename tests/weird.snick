@@ -6,7 +6,6 @@ proc q ( val    float x
        )
 int n; float y;
 bool a[1..8];
-y := 0.0;
 a[8] := true;
 k := 42;
 end
@@ -28,3 +27,4 @@ int n;
        else   m := n - m; m := m - 1  ;
 fi od od
 end
+

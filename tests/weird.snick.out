@@ -1,9 +1,9 @@
 proc q (val float x, ref int k)
     int n;
     float y;
-    bool a;
+    bool a[1..8];
 
-    a := true;
+    a[8] := true;
     k := 42;
 end
 
@@ -33,3 +33,4 @@ proc main ()
         od
     od
 end
+

@@ -165,7 +165,7 @@ constant:
     { value = Integer (int_of_string $1); raw = $1 }
   }
   | STRING_CONST {
-    { value = String $1; raw = $1 }
+    { value = String $1; raw = Printf.sprintf "\"%s\"" $1 }
   }
 
 unary_expression:

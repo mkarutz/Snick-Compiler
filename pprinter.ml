@@ -292,6 +292,7 @@ let print_decl fmt decl =
     print_dtype fmt dtype ;
     print_space fmt () ;
     print_id fmt id ;
+    print_string fmt ";" ;
     close_box fmt ()
   | ArrDecl (dtype, id, intervals) ->
     open_hbox fmt () ;
@@ -301,27 +302,21 @@ let print_decl fmt decl =
     print_char fmt '[' ;
     print_interval_list fmt intervals ;
     print_char fmt ']' ;
+    print_string fmt ";" ;
     close_box fmt ()
 
 (* Prints a list of Snick variable and array declaration. *)
 let rec print_decls fmt decls =
   match decls with
   | [] -> ()
+  | x::[] ->
+    print_decl fmt x
   | x::xs ->
     open_vbox fmt () ;
     print_decl fmt x ;
-    print_string fmt ";" ;
     print_break fmt 0 ;
     print_decls fmt xs ;
     close_box fmt ()
-
-(* Prints the body of a Snick procedure definition. *)
-let print_procbody fmt body =
-  open_vbox fmt () ;
-  print_decls fmt body.decls ;
-  print_break fmt 0 ;
-  print_stmts fmt body.stmts ;
-  close_box fmt ()
 
 (* Prints the mode qualifier of a paramter. *)
 let print_parammode fmt mode =
@@ -373,8 +368,16 @@ let print_procheader fmt header =
 let print_proc fmt proc =
   open_vbox fmt () ;
   print_procheader fmt proc.header ;
+  begin match proc.body.decls with
+    | [] ->
+      print_break fmt 0
+    | x::xs ->
+      print_break fmt 4 ;
+      print_decls fmt proc.body.decls ;
+      print_break fmt 0 ;
+  end ;
   print_break fmt 4 ;
-  print_procbody fmt proc.body ;
+  print_stmts fmt proc.body.stmts ;
   print_break fmt 0 ;
   print_string fmt "end" ;
   close_box fmt ()
