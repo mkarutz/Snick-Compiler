@@ -69,9 +69,9 @@ reference_specifier:
   | REF { Ref }
 
 type_specifier:
-  | BOOL { Bool }
-  | FLOAT { Float }
-  | INT { Int }
+  | BOOL { BoolType }
+  | FLOAT { FloatType }
+  | INT { IntType }
 
 identifier:
   IDENT { $1 }

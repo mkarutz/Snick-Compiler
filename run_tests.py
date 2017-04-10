@@ -3,6 +3,7 @@ import os
 import subprocess
 
 TEMP_TEST_FILE = "run_tests.out.tmp"
+TEMP_STDERR_FILE = "run_tests.err.tmp"
 TEMP_DIFF_FILE = "run_tests.diff.tmp"
 
 def get_tests():
@@ -13,7 +14,10 @@ def get_tests():
 
 def run_test(test, expected):
     with open(TEMP_TEST_FILE, 'w') as out_file:
-        subprocess.call(['./snick', '-p', test], stdout=out_file)
+        with open(TEMP_STDERR_FILE, 'w') as err_file:
+            subprocess.call(['./snick', '-p', test],
+                            stdout=out_file,
+                            stderr=err_file)
     with open(TEMP_DIFF_FILE, 'w') as diff_file:
         subprocess.call(['diff', expected, TEMP_TEST_FILE], stdout=diff_file)
     with open(TEMP_DIFF_FILE, 'r') as diff_file:
@@ -36,18 +40,11 @@ def run_tests():
             num_success += 1
     print("Tests finished: %d FAILED / %d PASSED"  % (num_failures, num_success))
 
-def touch(file):
-    fd = open(file, 'w')
-    fd.close()
-
-def setup():
-    touch(TEMP_TEST_FILE)
-    touch(TEMP_DIFF_FILE)
-
-def teardown():
+def cleanup():
     os.remove(TEMP_TEST_FILE)
     os.remove(TEMP_DIFF_FILE)
+    os.remove(TEMP_STDERR_FILE)
 
-setup()
-run_tests()
-teardown()
+if __name__ == "__main__":
+    run_tests()
+    cleanup()

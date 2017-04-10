@@ -257,9 +257,9 @@ let print_id fmt id =
 
 let print_dtype fmt dtype =
   match dtype with
-  | Bool -> print_string fmt "bool"
-  | Float -> print_string fmt "float"
-  | Int -> print_string fmt "int"
+  | BoolType -> print_string fmt "bool"
+  | FloatType -> print_string fmt "float"
+  | IntType -> print_string fmt "int"
 
 (* Pretty prints an interval in a Snick array declaration. *)
 let print_interval fmt interval =

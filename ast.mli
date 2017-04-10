@@ -9,9 +9,9 @@ type identifier = string
 type lexeme = string
 
 type type_spec =
-  | Bool
-  | Float
-  | Int
+  | BoolType
+  | FloatType
+  | IntType
 
 type interval = (int * int)
 
