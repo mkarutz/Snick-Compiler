@@ -21,6 +21,8 @@ snick
 
 # brill executable
 brill
+!tests/**
+!tests/*
 
 # oasis generated files
 setup.data

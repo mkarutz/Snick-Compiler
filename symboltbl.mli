@@ -3,8 +3,6 @@
  * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
  *)
 
-
-module
 type foo = int
 type scope = foo list
 type t = scope list

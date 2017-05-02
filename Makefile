@@ -52,7 +52,7 @@ clobber : clean
 depend: lexer.ml parser.ml
 	$(OCAMLDEP) snick.ml snick.mli $(ALLMODULES:%=%.mli) $(ALLMODULES:%=%.ml) >Makefile.depend
 
-test : snick
+test : snick clean
 	python run_tests.py
 
 -include Makefile.depend

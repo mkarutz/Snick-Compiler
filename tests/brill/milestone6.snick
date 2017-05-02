@@ -1,0 +1,14 @@
+# Phase 6 test case
+# Arrays
+
+proc main()
+    int n; float y;
+    int v[1..2, 0..3];
+    v[2, 1] := 2;
+    read v[2, 0];
+
+    write v[2, 1];
+    write "\n";
+    write v[2, 0];
+    write "\n";
+end
