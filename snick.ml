@@ -72,8 +72,5 @@ let _ =
     | Compile -> ()
   with
     | e ->
-      let line_num = lexbuf.lex_curr_p.pos_lnum in
-      let col_num = lexbuf.lex_start_p.pos_cnum - lexbuf.lex_start_p.pos_bol in
-      let msg = Printexc.to_string e in
-      Printf.eprintf "Error at line %d, col %d: %s\n" line_num col_num msg ;
+      Printf.eprintf "Compilation failed\n" ;
       exit 1

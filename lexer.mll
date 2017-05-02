@@ -62,6 +62,7 @@ rule token = parse
   | '[' { LBRACKET }
   | ']' { RBRACKET }
   | '=' { EQ }
+  | "!=" { NE }
   | '<' { LT }
   | '>' { GT }
   | '+' { ADD }

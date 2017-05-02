@@ -1,3 +1,0 @@
-proc (val x):
-    x = 2;
-end

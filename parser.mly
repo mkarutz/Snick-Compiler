@@ -8,6 +8,17 @@
 
 %{
 open Ast
+open Lexing
+
+let parse_error msg =
+  let start_pos = symbol_start_pos () in
+  let end_pos = symbol_end_pos () in
+  Printf.eprintf "Syntax error at line %d, characters %d-%d: %s\n"
+    start_pos.pos_lnum
+    (start_pos.pos_cnum - start_pos.pos_bol)
+    (end_pos.pos_cnum - start_pos.pos_bol)
+    msg ;
+  raise Parse_error
 %}
 
 %token <string> BOOL_CONST
@@ -83,18 +94,18 @@ procedure_body:
 
 declaration_list:
   | { [] }
-  | declaration_list declaration { $2 :: $1 }
+  | declaration_list declaration SEMICOLON { $2 :: $1 }
 
 declaration:
   | variable_declaration { $1 }
   | array_declaration { $1 }
 
 variable_declaration:
-  type_specifier identifier SEMICOLON { VarDecl ($1, $2) }
+  type_specifier identifier { VarDecl ($1, $2) }
 
 array_declaration:
-  type_specifier identifier LBRACKET interval_list RBRACKET SEMICOLON {
-    ArrDecl ($1, $2, $4)
+  | type_specifier identifier LBRACKET interval_list RBRACKET {
+    ArrDecl ($1, $2, List.rev $4)
   }
 
 interval_list:
@@ -117,7 +128,7 @@ statement:
   | iteration_statement { CompStmt $1 }
 
 assignment_statement:
-  lvalue ASSIGN expression SEMICOLON { Assign ($1, $3) }
+  | lvalue ASSIGN expression SEMICOLON { Assign ($1, $3) }
 
 read_statement:
   READ lvalue SEMICOLON { Read $2 }
@@ -126,7 +137,7 @@ write_statement:
   WRITE expression SEMICOLON { Write $2 }
 
 procedure_call_statement:
-  identifier LPAREN expression_list RPAREN SEMICOLON { Call ($1, List.rev $3) }
+  | identifier LPAREN expression_list RPAREN SEMICOLON { Call ($1, List.rev $3) }
 
 selection_statement:
   | IF expression THEN statement_list FI { IfThen ($2, List.rev $4) }
