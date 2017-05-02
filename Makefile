@@ -1,7 +1,7 @@
 TARGETS = snick
 TARGETS_BYTE=$(TARGETS:%=%.byte)
 
-MODULES = ast lexer parser pprinter
+MODULES = ast lexer parser pprinter brill codegen translate
 MLFILES = $(addsuffix .ml, $(MODULES))
 CMOFILES = $(addsuffix .cmo, $(MODULES))
 CMXFILES = $(addsuffix .cmx, $(MODULES))
@@ -52,7 +52,7 @@ clobber : clean
 depend: lexer.ml parser.ml
 	$(OCAMLDEP) snick.ml snick.mli $(ALLMODULES:%=%.mli) $(ALLMODULES:%=%.ml) >Makefile.depend
 
-test : snick clean
+test : snick
 	python run_tests.py
 
 -include Makefile.depend

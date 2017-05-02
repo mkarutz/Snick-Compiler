@@ -69,7 +69,9 @@ let _ =
     match Args.mode args with
     | PrettyPrint ->
       Pprinter.print_program Format.std_formatter prog
-    | Compile -> ()
+    | Compile ->
+      let code = Translate.translate prog in
+      Codegen.print_code code
   with
     | e ->
       Printf.eprintf "Compilation failed\n" ;

@@ -1,8 +1,11 @@
-snick.cmo : pprinter.cmi parser.cmi lexer.cmo
-snick.cmx : pprinter.cmx parser.cmx lexer.cmx
+snick.cmo : translate.cmi pprinter.cmi parser.cmi lexer.cmo codegen.cmi
+snick.cmx : translate.cmx pprinter.cmx parser.cmx lexer.cmx codegen.cmx
 ast.cmi :
 parser.cmi : ast.cmi
 pprinter.cmi : ast.cmi
+brill.cmi :
+codegen.cmi : brill.cmi
+translate.cmi : brill.cmi ast.cmi
 ast.cmo : ast.cmi
 ast.cmx : ast.cmi
 lexer.cmo : parser.cmi
@@ -11,5 +14,11 @@ parser.cmo : ast.cmi parser.cmi
 parser.cmx : ast.cmx parser.cmi
 pprinter.cmo : ast.cmi pprinter.cmi
 pprinter.cmx : ast.cmx pprinter.cmi
-snick.cmo : pprinter.cmi parser.cmi lexer.cmo
-snick.cmx : pprinter.cmx parser.cmx lexer.cmx
+brill.cmo : brill.cmi
+brill.cmx : brill.cmi
+codegen.cmo : brill.cmi codegen.cmi
+codegen.cmx : brill.cmx codegen.cmi
+translate.cmo : brill.cmi translate.cmi
+translate.cmx : brill.cmx translate.cmi
+snick.cmo : translate.cmi pprinter.cmi parser.cmi lexer.cmo codegen.cmi
+snick.cmx : translate.cmx pprinter.cmx parser.cmx lexer.cmx codegen.cmx

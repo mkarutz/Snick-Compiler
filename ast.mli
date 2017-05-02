@@ -97,3 +97,5 @@ type proc_def = {
 type program = {
   procdefs : proc_def list ;
 }
+
+type t = program

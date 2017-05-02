@@ -87,7 +87,6 @@ def run_tests():
     for test in get_pprinter_tests():
         print("Running test: %s" % test[0])
         diff = run_pprinter_test(test)
-        cleanup()
         if (diff != ""):
             num_failures += 1
             print("FAILED: Output did not match expectation.")
@@ -96,11 +95,11 @@ def run_tests():
             print("PASSED")
             num_success += 1
         print("")
+        cleanup()
     
     for test in get_brill_tests():
         print("Running test: %s" % test[0])
         diff = run_brill_test(test)
-        cleanup()
         if (diff != ""):
             num_failures += 1
             print("FAILED: Output did not match expectation.")
@@ -109,6 +108,7 @@ def run_tests():
             print("PASSED")
             num_success += 1
         print("")
+        cleanup()
 
     print("===================================================================")
     print("Tests finished: %d FAILED / %d PASSED"  
@@ -125,3 +125,4 @@ def cleanup():
 
 if __name__ == "__main__":
     run_tests()
+    cleanup()
