@@ -19,6 +19,9 @@ parser.ml
 parser.mli
 snick
 
+# brill executable
+brill
+
 # oasis generated files
 setup.data
 setup.log
