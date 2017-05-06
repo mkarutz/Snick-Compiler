@@ -62,6 +62,9 @@ let unop_precedence unop =
 
 (* Pretty prints a Snick expression. *)
 let rec print_expr fmt expr =
+  print_expr' fmt expr.expr
+  
+and print_expr' fmt expr =
   match expr with
   | ConstExpr const ->
     print_const fmt const
@@ -85,7 +88,7 @@ let rec print_expr fmt expr =
 (* Prints the left operand of a binary expression, adding parentheses if
  * needed. *)
 and print_lhs fmt parent_binop lhs =
-  match lhs with
+  match lhs.expr with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
     print_expr fmt lhs
   | BinopExpr (_, binop, _) ->
@@ -97,7 +100,7 @@ and print_lhs fmt parent_binop lhs =
 (* Prints the right operand of a binary expression, adding parentheses if
  * needed. *)
 and print_rhs fmt parent_binop rhs =
-  match rhs with
+  match rhs.expr with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
     print_expr fmt rhs
   | BinopExpr (_, binop, _) ->
@@ -108,7 +111,7 @@ and print_rhs fmt parent_binop rhs =
 
 (* Prints the operand of a unary expression, adding parentheses if needed. *)
 and print_unary_operand fmt unop expr =
-  match expr with
+  match expr.expr with
   | ConstExpr _ | LvalueExpr _ | UnopExpr _ ->
     print_expr fmt expr
   | BinopExpr (_, binop, _) ->
@@ -260,6 +263,7 @@ let print_dtype fmt dtype =
   | BoolType -> print_string fmt "bool"
   | FloatType -> print_string fmt "float"
   | IntType -> print_string fmt "int"
+  | _ -> failwith "Impossible type for variable declaration."
 
 (* Pretty prints an interval in a Snick array declaration. *)
 let print_interval fmt interval =
@@ -329,7 +333,7 @@ let print_param fmt param =
   open_hbox fmt () ;
   print_parammode fmt param.mode ;
   print_space fmt () ;
-  print_dtype fmt param.type_spec ;
+  print_dtype fmt param.dtype ;
   print_space fmt () ;
   print_id fmt param.id ;
   close_box fmt ()

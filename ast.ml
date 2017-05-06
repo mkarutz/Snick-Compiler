@@ -8,16 +8,18 @@
 type identifier = string
 type lexeme = string
 
-type type_spec =
+type dtype =
   | BoolType
   | FloatType
   | IntType
+  | StringType
+  | UnknownType
 
-type interval = (int * int)
+type interval = int * int
 
 type decl =
-  | VarDecl of (type_spec * identifier)
-  | ArrDecl of (type_spec * identifier * (interval list))
+  | VarDecl of dtype * identifier
+  | ArrDecl of dtype * identifier * interval list
 
 type binop =
   | OrBinop
@@ -37,6 +39,7 @@ type unop =
   | NotUnop
   | MinusUnop
 
+(* Constants carry their raw lexeme. *)
 type const = {
   value: value;
   raw: string;
@@ -47,27 +50,31 @@ and value =
   | Integer of int
   | String of string
 
-type lvalue =
-  | Id of identifier
-  | ArrAccess of (identifier * (expr list))
-and expr =
+type expr = {
+  expr : expr';
+  mutable inferred_type : dtype;
+}
+and expr' =
   | ConstExpr of const
   | LvalueExpr of lvalue
-  | BinopExpr of (expr * binop * expr)
-  | UnopExpr of (unop * expr)
+  | BinopExpr of expr * binop * expr
+  | UnopExpr of unop * expr
+and lvalue =
+  | Id of identifier
+  | ArrAccess of identifier * expr list
 
 type stmt =
   | AtomStmt of atom_stmt
   | CompStmt of comp_stmt
 and atom_stmt =
-  | Assign of (lvalue * expr)
+  | Assign of lvalue * expr
   | Read of lvalue
   | Write of expr
-  | Call of (identifier * (expr list))
+  | Call of identifier * expr list
 and comp_stmt =
-  | IfThenElse of (expr * (stmt list) * (stmt list))
-  | IfThen of (expr * (stmt list))
-  | While of (expr * (stmt list))
+  | IfThenElse of expr * stmt list * stmt list
+  | IfThen of expr * stmt list
+  | While of expr * stmt list
 
 type ref_spec =
   | Val
@@ -75,7 +82,7 @@ type ref_spec =
 
 type param_def = {
   mode : ref_spec ;
-  type_spec : type_spec ;
+  dtype : dtype ;
   id : identifier
 }
 
@@ -98,4 +105,4 @@ type program = {
   procdefs : proc_def list ;
 }
 
-type t = program
+type t = program 

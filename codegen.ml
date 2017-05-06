@@ -40,6 +40,8 @@ let print_instr instr =
     printf "halt\n"
   | Brill.Label label ->
     printf "%s:\n" label
+  | _ ->
+    failwith "Not implemented."
 
 let rec print_instrs instrs =
   match instrs with

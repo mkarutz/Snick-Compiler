@@ -2,8 +2,9 @@
  * File: parser.mly
  * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
  *
- * Definition of parser for the Snick compiler. The parser reads a stream of
- * tokens from the tokenizer and constructs a Snick Ast.
+ * Definition of parser for the Snick compiler. The parser reads 
+ * a stream of tokens from the tokenizer and constructs a Snick 
+ * Ast.
  */
 
 %{
@@ -13,7 +14,8 @@ open Lexing
 let parse_error msg =
   let start_pos = symbol_start_pos () in
   let end_pos = symbol_end_pos () in
-  Printf.eprintf "Syntax error at line %d, characters %d-%d: %s\n"
+  Printf.eprintf 
+    "Syntax error at line %d, characters %d-%d: %s\n"
     start_pos.pos_lnum
     (start_pos.pos_cnum - start_pos.pos_bol)
     (end_pos.pos_cnum - start_pos.pos_bol)
@@ -43,6 +45,14 @@ let parse_error msg =
 %token UPTO
 %token EOF
 
+%left OR /* lowest precedence */
+%left AND
+%nonassoc NOT
+%nonassoc EQ NE LT LTE GT GTE
+%left ADD MINUS
+%left MUL DIV
+%nonassoc UMINUS /* highest precendence */
+
 %type <Ast.program> program
 
 %start program
@@ -58,7 +68,9 @@ procedure_list:
   }
 
 procedure_definition:
-  PROC procedure_header procedure_body END { { header = $2; body = $3 } }
+  PROC procedure_header procedure_body END { 
+    { header = $2; body = $3 } 
+  }
 
 procedure_header:
   identifier LPAREN parameter_list RPAREN {
@@ -72,7 +84,7 @@ parameter_list:
 
 parameter_definition:
   reference_specifier type_specifier identifier {
-    { mode = $1; type_spec = $2; id = $3 }
+    { mode = $1; dtype = $2; id = $3 }
   }
 
 reference_specifier:
@@ -113,7 +125,9 @@ interval_list:
   | interval_list COMMA interval { $3 :: $1 }
 
 interval:
-  INT_CONST UPTO INT_CONST { (int_of_string $1, int_of_string $3) }
+  INT_CONST UPTO INT_CONST { 
+    (int_of_string $1, int_of_string $3) 
+  }
 
 statement_list:
   | statement { [$1] }
@@ -137,19 +151,27 @@ write_statement:
   WRITE expression SEMICOLON { Write $2 }
 
 procedure_call_statement:
-  | identifier LPAREN expression_list RPAREN SEMICOLON { Call ($1, List.rev $3) }
+  | identifier LPAREN expression_list RPAREN SEMICOLON { 
+    Call ($1, List.rev $3) 
+  }
 
 selection_statement:
-  | IF expression THEN statement_list FI { IfThen ($2, List.rev $4) }
+  | IF expression THEN statement_list FI { 
+    IfThen ($2, List.rev $4) 
+  }
   | IF expression THEN statement_list ELSE statement_list FI {
     IfThenElse ($2, List.rev $4, List.rev $6)
   }
 
 iteration_statement:
-  WHILE expression DO statement_list OD { While ($2, List.rev $4) }
+  WHILE expression DO statement_list OD { 
+    While ($2, List.rev $4) 
+  }
 
 lvalue:
-  | identifier LBRACKET expression_list RBRACKET { ArrAccess ($1, List.rev $3) }
+  | identifier LBRACKET expression_list RBRACKET { 
+    ArrAccess ($1, List.rev $3) 
+  }
   | identifier { Id $1 }
 
 expression_list:
@@ -158,12 +180,26 @@ expression_list:
   | expression_list COMMA expression { $3 :: $1 }
 
 expression:
-  | disjunctive_expression { $1 }
-
-primary_expression:
+  | expression_ { { expr = $1 ; inferred_type = UnknownType } }
+  
+expression_:
   | lvalue { LvalueExpr $1 }
   | constant { ConstExpr $1 }
-  | LPAREN expression RPAREN { $2 }
+  | expression OR expression { BinopExpr ($1, OrBinop, $3) }
+	| expression AND expression { BinopExpr ($1, AndBinop, $3) }
+	| expression EQ expression { BinopExpr ($1, EqBinop, $3) }
+	| expression NE expression { BinopExpr ($1, NeBinop, $3) }
+	| expression LTE expression { BinopExpr ($1, LteBinop, $3) }
+	| expression GTE expression { BinopExpr ($1, GteBinop, $3) }
+	| expression LT expression { BinopExpr ($1, LtBinop, $3) }
+	| expression GT expression { BinopExpr ($1, GtBinop, $3) }
+	| expression ADD expression { BinopExpr ($1, AddBinop, $3) }
+	| expression MINUS expression { BinopExpr ($1, SubBinop, $3) }
+	| expression MUL expression { BinopExpr ($1, MulBinop, $3) }
+	| expression DIV expression { BinopExpr ($1, DivBinop, $3) }
+	| NOT expression { UnopExpr (NotUnop, $2) }
+	| MINUS expression %prec UMINUS { UnopExpr (MinusUnop, $2) }
+  | LPAREN expression_ RPAREN { $2 }
 
 constant:
   | BOOL_CONST {
@@ -177,58 +213,4 @@ constant:
   }
   | STRING_CONST {
     { value = String $1; raw = Printf.sprintf "\"%s\"" $1 }
-  }
-
-unary_expression:
-  | primary_expression { $1 }
-  | MINUS unary_expression { UnopExpr (MinusUnop, $2) }
-
-multiplicative_expression:
-  | unary_expression { $1 }
-  | multiplicative_expression multiplicative_operator unary_expression {
-    BinopExpr ($1, $2, $3)
-  }
-
-multiplicative_operator:
-  | MUL { MulBinop }
-  | DIV { DivBinop }
-
-additive_expression:
-  | multiplicative_expression { $1 }
-  | additive_expression additive_operator multiplicative_expression {
-    BinopExpr ($1, $2, $3)
-  }
-
-additive_operator:
-  | ADD { AddBinop }
-  | MINUS { SubBinop }
-
-relational_expression:
-  | additive_expression { $1 }
-  | relational_expression relational_operator additive_expression {
-    BinopExpr ($1, $2, $3)
-  }
-
-relational_operator:
-  | EQ { EqBinop }
-  | NE { NeBinop }
-  | LT { LtBinop }
-  | LTE { LteBinop }
-  | GT { GtBinop }
-  | GTE { GteBinop }
-
-negative_expression:
-  | relational_expression { $1 }
-  | NOT negative_expression { UnopExpr(NotUnop, $2) }
-
-conjunctive_expression:
-  | negative_expression { $1 }
-  | conjunctive_expression AND negative_expression {
-    BinopExpr ($1, AndBinop, $3)
-  }
-
-disjunctive_expression:
-  | conjunctive_expression { $1 }
-  | disjunctive_expression OR conjunctive_expression {
-    BinopExpr ($1, OrBinop, $3)
   }
