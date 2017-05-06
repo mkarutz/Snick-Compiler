@@ -10,6 +10,27 @@ open Ast
 module AST = Ast
 module IR = Brill
 
+let rec trans_prog prog = []
+
+and trans_procs procs = []
+
+and trans_proc proc = []
+
+and trans_decls decls = []
+
+and trans_decl decl = []
+
+and trans_stmts stmts = []
+
+and trans_stmt stmt = []
+
+and trans_exprs exprs = []
+
+and trans_expr expr = []
+
+
+(* 
+
 (* Tranlate expressions. *)
 let rec trans_expr expr vtable ftable place =
   match expr with
@@ -64,14 +85,6 @@ and trans_binop op dtype lhs_place rhs_place =
   | MulBinop
   | DivBinop -> []
 
-and infer_type t1 t2 =
-  match t1 with
-  | IR.RealT -> IR.RealT
-  | _ ->
-  match t2 with
-  | IR.RealT -> IR.RealT
-  | _ -> IR.IntT
-
 and gen_binop_code binop lhs_type rhs_type place = ([], IR.RealT)
   (* let (cast_code, t) = gen_cast_code  *)
   
@@ -116,4 +129,4 @@ let trans_prog prog =
 
 let prologue () = [IR.Call "proc_main" ; IR.Halt]
 
-let translate prog = prologue () @ (trans_prog prog)
+let translate prog = prologue () @ (trans_prog prog) *)

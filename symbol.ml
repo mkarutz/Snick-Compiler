@@ -5,13 +5,13 @@
 
 open Ast
 
-type dtype = Ast.type_spec
+type dtype = Ast.dtype
 type slotnum = int
 
 (* An entry in the variable symbol table. *)
 type vbinding =
   | ScalarVal of (dtype * slotnum)
-  | ScalarRef
+  | ScalarRef of (dtype * slotnum)
   | Array
   | UnboundVar
   

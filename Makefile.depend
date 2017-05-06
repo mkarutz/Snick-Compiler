@@ -12,5 +12,9 @@ pprinter.cmo : ast.cmo pprinter.cmi
 pprinter.cmx : ast.cmx pprinter.cmi
 brill.cmo :
 brill.cmx :
+symbol.cmo : ast.cmo
+symbol.cmx : ast.cmx
+analyse.cmo : symbol.cmo ast.cmo
+analyse.cmx : symbol.cmx ast.cmx
 snick.cmo : pprinter.cmi parser.cmi lexer.cmo
 snick.cmx : pprinter.cmx parser.cmx lexer.cmx

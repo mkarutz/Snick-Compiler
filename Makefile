@@ -1,7 +1,7 @@
 TARGETS = snick
 TARGETS_BYTE=$(TARGETS:%=%.byte)
 
-MODULES = ast lexer parser pprinter brill #symbol translate codegen
+MODULES = ast lexer parser pprinter brill symbol analyse # translate codegen
 MLFILES = $(addsuffix .ml, $(MODULES))
 CMOFILES = $(addsuffix .cmo, $(MODULES))
 CMXFILES = $(addsuffix .cmx, $(MODULES))
