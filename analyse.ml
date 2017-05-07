@@ -143,12 +143,12 @@ and check_lvalue lvalue proc_id =
   match lvalue with
   | Id id
   | ArrAccess (id, _) ->
-    let binding = lookup_var id proc_id in
+    let binding = lookup_var proc_id id in
     match binding with
     | ScalarVal (dtype, _)
     | ScalarRef (dtype, _) ->
       dtype
-    | _ -> failwith "TODO" 
+    | _ -> failwith (Printf.sprintf "Use of undeclared variable: %s" id)
     (* TODO: arrays type checking *)
 
 and check_binop binop ltype rtype =

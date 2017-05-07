@@ -6,4 +6,4 @@
  * into a Brill program.
  *)
 
-val translate : Ast.t -> Brill.t 
+val translate : Ast.t -> Brill.t

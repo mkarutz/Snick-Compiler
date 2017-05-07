@@ -36,11 +36,11 @@ def run_brill_test(test):
                 TEMP_BRILL_FILE
             ], stdout=out_file)
         else:
-            with open(TEMP_BRILL_FILE, 'r') as brill_file:
+            with open(input_fn, 'r') as in_file:
                 subprocess.call([
                     './brill', 
                     TEMP_BRILL_FILE
-                ], stdin=brill_file, stdout=out_file)
+                ], stdin=in_file, stdout=out_file)
     
     # diff program output
     with open(TEMP_DIFF_FILE, 'w') as diff_file:

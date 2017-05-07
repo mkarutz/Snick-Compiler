@@ -106,3 +106,11 @@ type program = {
 }
 
 type t = program 
+
+(* Helper function for getting lvalue ids. *)
+let get_id lvalue = 
+  match lvalue with
+  | Id id
+  | ArrAccess (id, _) ->
+    id
+  

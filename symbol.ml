@@ -15,89 +15,100 @@ type vbinding =
   | Array
   | UnboundVar
   
+type proc = {
+  id : string;
+  params : param_def list;
+  num_params : int;
+  stack_slots : int;
+}
+
 type pbinding =
+  | Procedure of proc
   | UnboundProc
 
 (* Module-local hashtable *)
 let vtable = Hashtbl.create 1024
-(* let ptable = Hashtbl.create 1024 *)
+let ptable = Hashtbl.create 1024
 
 (* Lookup a variable in the symbol table. *)
 let lookup_var proc_id id =
   try Hashtbl.find vtable (proc_id, id)
   with _ -> UnboundVar
+  
+let lookup_type proc_id id =
+  let record = lookup_var proc_id id in
+  match record with
+  | ScalarVal (dtype, _)
+  | ScalarRef (dtype, _) ->
+    dtype
+  | Array ->
+    failwith "TODO"
+  | UnboundVar ->
+    failwith "error"
 
 (* Lookup a procedure in the symbol table. *)
-(* let lookup_proc proc_id =
+let lookup_proc proc_id =
   try Hashtbl.find ptable proc_id
-  with _ -> UnboundProc *)
+  with _ -> UnboundProc
 
 (* Traverses a Snick AST and builds the global symbol tables. *)
 let rec build_symtbls program =
-  build_ptable program.procdefs ;
-  build_vtable program.procdefs ;
+  index_procs program.procdefs
 
 (* Builds the table binding symbols to procedure information. *)
-and build_ptable procs = () (* TODO *)
-
-(* Builds the table binding symbols to variable information. *)
-and build_vtable procs =
+and index_procs procs =
   match procs with
   | [] -> ()
   | curr::rest ->
-    build_scope curr
+    index_proc curr ;
+    index_procs rest
     
-and build_scope proc =
-  let header = proc.Ast.header in
-  let body = proc.Ast.body in
-  let proc_id = header.Ast.proc_id in
-  let params = header.Ast.params in
-  let decls = body.Ast.decls in
-  let place = 1 in
-  (* Add symbol table entries for formal parameters. *)
-  let place' = add_params_entries params proc_id place in
-  (* Add symbol table entries for local decls. *)
-  add_decls_entries decls proc_id place'
-
-(** 
- * Adds symbol table entries for formal parameters. 
- * <p>
- * Inherited attributed:
- * <ul>
- *   <li> procedure id
- *   <li> next available stack slot 
- * </ul>
- * <p>
- * Returns the next available stack slot after all the formal parameters.
- *)
-and add_params_entries params proc_id place =
+and index_proc proc =
+  let proc_id = proc.header.proc_id in
+  let num_slots = index_params proc.header.params proc_id 0 in
+  let num_slots' = index_decls proc.body.decls proc_id num_slots in
+  let binding = Procedure {
+    id = proc_id;
+    params = proc.header.params;
+    num_params = List.length proc.header.params;
+    stack_slots = num_slots + num_slots';
+  } in
+  Hashtbl.add ptable proc_id binding
+  
+and index_params params proc_id slots_used =
   match params with
-  | [] -> place
+  | [] -> slots_used
   | curr::rest ->
-    let place' = add_param_entry curr proc_id place in
-    add_params_entries rest proc_id place'
+    let slots_used' = index_param curr proc_id slots_used in
+    index_params rest proc_id slots_used'
 
-(* Adds a symbol table entry for a formal parameter. *)
-and add_param_entry param proc_id place = 
-  place (* TODO *)
+and index_param param proc_id slots_used =
+  let id = param.id in
+  let dtype = param.dtype in
+  let slot_num = slots_used in
+  let slots_used' = slots_used + 1 in
+  match param.mode with
+  | Val ->
+    let binding = ScalarVal (dtype, slot_num) in
+    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+  | Ref -> 
+    let binding = ScalarRef (dtype, slot_num) in
+    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
 
-(* Adds symbol table entries for local variables. *)
-and add_decls_entries decls proc_id place =
+and index_decls decls proc_id slots_used =
   match decls with
-  | [] -> ()
+  | [] -> slots_used
   | curr::rest ->
-    let place' = add_decl_entry curr proc_id place in
-    add_decls_entries rest proc_id place'
+    let slots_used' = index_decl curr proc_id slots_used in
+    index_decls rest proc_id slots_used'
 
-(* Adds a symbol table entry for a local variable. *)
-and add_decl_entry decl proc_id place =
+and index_decl decl proc_id slots_used =
   match decl with
-  | VarDecl (dtype, id) -> 
-    let sym = (proc_id, id) in
-    let binding = ScalarVal (dtype, place) in
-    (* Add binding to table. *)
-    Hashtbl.add vtable sym binding ;
-    (* Return next place. *)
-    place + 1
-  | ArrDecl (dtype, id, intervals) -> 
-    place (* TODO *)
+  | VarDecl (dtype, id) ->
+    let slot_num = slots_used in
+    let slots_used' = slots_used + 1 in
+    let binding = ScalarVal (dtype, slot_num) in
+    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+  | ArrDecl _ -> 
+    slots_used
+    (* TODO *)

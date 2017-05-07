@@ -34,40 +34,40 @@ type instr =
   | Load of (reg * slotnum) (* reg = x *)
   | Store of (slotnum * reg) (* x = reg *)
   | Move of (reg * reg) (* reg = reg *)
-  | Load_address of (reg * slotnum) (* reg = &x *)
-  | Load_indirect of (reg * reg) (* reg = *reg *)
-  | Store_indirect of (reg * reg) (* *reg = reg *)
+  | LoadAddress of (reg * slotnum) (* reg = &x *)
+  | LoadIndirect of (reg * reg) (* reg = *reg *)
+  | StoreIndirect of (reg * reg) (* *reg = reg *)
   
   (* Constants *)
-  | Int_const of (reg * raw_const)
-  | Real_const of (reg * raw_const)
+  | IntConst of (reg * raw_const)
+  | RealConst of (reg * raw_const)
   | StringConst of (reg * raw_const)
   
-  (* Binary operations *)
-  | Add_int of (reg * reg * reg) (* reg = reg + reg *)
-  | Add_real of (reg * reg * reg) (* reg = reg + reg *)
-  | Add_offset of (reg * reg * reg) (* reg = reg + reg *)
-  | Sub_int of (reg * reg * reg) (* reg = reg - reg *)
-  | Sub_real of (reg * reg * reg) (* reg = reg - reg *)
-  | Sub_offset of (reg * reg * reg) (* reg = reg - reg *)
-  | Mul_int of (reg * reg * reg) (* reg = reg * reg *)
-  | Mul_real of (reg * reg * reg) (* reg = reg * reg *)
-  | Div_int of (reg * reg * reg) (* reg = reg / reg *)
-  | Div_real of (reg * reg * reg) (* reg = reg / reg *)
+  (* Arithmetic operations *)
+  | AddInt of (reg * reg * reg) (* reg = reg + reg *)
+  | AddReal of (reg * reg * reg) (* reg = reg + reg *)
+  | AddOffset of (reg * reg * reg) (* reg = reg + reg *)
+  | SubInt of (reg * reg * reg) (* reg = reg - reg *)
+  | SubReal of (reg * reg * reg) (* reg = reg - reg *)
+  | SubOffset of (reg * reg * reg) (* reg = reg - reg *)
+  | MulInt of (reg * reg * reg) (* reg = reg * reg *)
+  | MulReal of (reg * reg * reg) (* reg = reg * reg *)
+  | DivInt of (reg * reg * reg) (* reg = reg / reg *)
+  | DivReal of (reg * reg * reg) (* reg = reg / reg *)
   
   (* Relational operations *)
-  | Cmp_eq_int of (reg * reg * reg) (* reg = reg == reg *)
-  | Cmp_ne_int of (reg * reg * reg) (* etc. *)
-  | Cmp_gt_int of (reg * reg * reg)
-  | Cmp_ge_int of (reg * reg * reg)
-  | Cmp_lt_int of (reg * reg * reg)
-  | Cmp_le_int of (reg * reg * reg)
-  | Cmp_eq_real of (reg * reg * reg)
-  | Cmp_ne_real of (reg * reg * reg)
-  | Cmp_gt_real of (reg * reg * reg)
-  | Cmp_ge_real of (reg * reg * reg)
-  | Cmp_lt_real of (reg * reg * reg)
-  | Cmp_le_real of (reg * reg * reg)
+  | CmpEqInt of (reg * reg * reg) (* reg = reg == reg *)
+  | CmpNeInt of (reg * reg * reg) (* etc. *)
+  | CmpGtInt of (reg * reg * reg)
+  | CmpGeInt of (reg * reg * reg)
+  | CmpLtInt of (reg * reg * reg)
+  | CmpLeInt of (reg * reg * reg)
+  | CmpEqReal of (reg * reg * reg)
+  | CmpNeReal of (reg * reg * reg)
+  | CmpGtReal of (reg * reg * reg)
+  | CmpGeReal of (reg * reg * reg)
+  | CmpLtReal of (reg * reg * reg)
+  | CmpLeReal of (reg * reg * reg)
   
   (* Logical operations *)
   | And of (reg * reg * reg) (* reg = reg ^ reg *)
@@ -75,23 +75,23 @@ type instr =
   | Not of (reg * reg) (* reg = !reg *)
   
   (* Typecasting *)
-  | Int_to_real of (reg * reg) (* reg = (float) reg *)
+  | IntToReal of (reg * reg) (* reg = (float) reg *)
   
   (* Pseudo-instruction label *)
   | Label of label
   
   (* Branching *)
-  | Branch_on_true of (reg * label) (* if (reg) goto label *)
-  | Branch_on_false of (reg * label) (* if (!reg) goto label *)
-  | Branch_uncond of label (* goto label *)
+  | BranchOnTrue of (reg * label) (* if (reg) goto label *)
+  | BranchOnFalse of (reg * label) (* if (!reg) goto label *)
+  | BranchUncond of label (* goto label *)
   | Call of label
   | CallBuiltin of builtin
   | Return
   
   (* Debugging *)
-  | Debug_reg of reg
-  | Debug_slot of slotnum
-  | Debug_stack
+  | DebugReg of reg
+  | DebugSlot of slotnum
+  | DebugStack
   
   (* Termination *)
   | Halt
