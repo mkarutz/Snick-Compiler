@@ -1,0 +1,7 @@
+proc main ()
+    int x;
+    
+    x := 1;
+    write -x;
+    write "\n";
+end

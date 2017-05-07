@@ -1,0 +1,7 @@
+proc main ()
+    
+    write not (2 > 3);
+    write " ";
+    write not true;
+    write "\n";
+end

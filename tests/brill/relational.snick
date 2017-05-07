@@ -1,0 +1,6 @@
+proc main ()
+    int x;
+    
+    x := 5;
+    write x < 10;
+end

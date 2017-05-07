@@ -1,0 +1,23 @@
+proc main ()
+    int x;
+    float y;
+    bool z;
+    
+    write x;
+    write " ";
+    write y;
+    write " ";
+    write z;
+    write "\n";
+    
+    x := 1;
+    y := 1.0;
+    z := true;
+    
+    write x;
+    write " ";
+    write y;
+    write " ";
+    write z;
+    write "\n";
+end

@@ -1,0 +1,15 @@
+proc main ()
+    bool x;
+    
+    x := false;
+    write x;
+    write " ";
+    write (not (x));
+    write " ";
+    
+    x := true;
+    write x;
+    write " ";
+    write (not (x));
+    write "\n";
+end

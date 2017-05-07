@@ -1,0 +1,10 @@
+proc main ()
+    int i;
+    
+    i := 0;
+    while i < 10 do
+        write i;
+        write " ";
+        i := i + 1;
+    od
+end

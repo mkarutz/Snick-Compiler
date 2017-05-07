@@ -1,0 +1,10 @@
+proc main ()
+    int x;
+    
+    f(x);
+    write x;
+end
+
+proc f (ref int x)
+    x := 2;
+end

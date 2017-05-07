@@ -36,6 +36,12 @@ let print_instr instr =
     printf "load r%d, %d\n" reg slotnum
   | Brill.Store (slotnum, reg) ->
     printf "store %d, r%d\n" slotnum reg
+  | LoadAddress (reg, slotnum) ->
+    printf "load_address r%d, %d\n" reg slotnum
+  | LoadIndirect (dest, src) ->
+    printf "load_indirect r%d, r%d\n" dest src
+  | StoreIndirect (dest, src) ->
+    printf "store_indirect r%d, r%d\n" dest src
     
   (* Constants *)
   | Brill.IntConst (reg, value) ->
@@ -140,4 +146,5 @@ let rec print_instrs instrs =
     print_instr x ;
     print_instrs xs
     
-let print_code program = print_instrs program
+let print_code program = 
+  print_instrs program
