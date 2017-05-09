@@ -216,6 +216,7 @@ and trans_ifthen expr stmts proc_id =
 and trans_while expr stmts proc_id = 
   let guard_label = new_label () in
   let body_label = new_label () in
+  [ BranchUncond guard_label ] @
   [ Label (body_label) ] @ 
   trans_stmts stmts proc_id @ 
   [ Label (guard_label) ] @
