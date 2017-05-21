@@ -2,12 +2,14 @@
  * File: symbol.ml
  * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
  *
- * This module provides services for building and querying the global symbol table.
+ * This module provides services for building and querying the global symbol 
+ * table.
  *
- * Building the symbol table uses a set of mutually-recursive functions for traversing
- * the Snick AST. THe functions are modelled using an L-attributed attribute grammar.
- * Each function takes the inherited attributes it requires in as parameters, and returns
- * provides synthesized attributes as return values.
+ * Building the symbol table uses a set of mutually-recursive functions for 
+ * traversing the Snick AST. The functions are modelled using an L-attributed 
+ * attribute grammar. Each function takes the inherited attributes it requires 
+ * in as parameters, and returns provides synthesized attributes as return 
+ * values.
  *)
 
 open Ast
@@ -38,8 +40,8 @@ type pbinding =
 (** 
  * Hashtables for holding symbol bindings. 
  *
- * <p>Since procedures and variables have separate namespaces, we simply use seperate
- * hashtables.
+ * <p>Since procedures and variables have separate namespaces, we simply use 
+ * seperate hashtables.
  *)
 let vtable = Hashtbl.create 1024
 let ptable = Hashtbl.create 1024
@@ -49,7 +51,7 @@ let lookup_var proc_id id =
   try Hashtbl.find vtable (proc_id, id)
   with _ -> UnboundVar
   
-(** Helper function for retrieving the type of a variable from the symbol table. *)
+(** Gets the type of a variable from the symbol table. *)
 let lookup_type proc_id id =
   let record = lookup_var proc_id id in
   match record with
@@ -60,7 +62,7 @@ let lookup_type proc_id id =
   | UnboundVar ->
     failwith "error"
 
-(** Lookup a procedure in the symbol table. *)
+(** Looks-up a procedure in the symbol table. *)
 let lookup_proc proc_id =
   try Hashtbl.find ptable proc_id
   with _ -> UnboundProc
@@ -68,11 +70,11 @@ let lookup_proc proc_id =
 (** 
  * Traverses a Snick AST and builds the global symbol table. 
  *
- * <p>Performs basic checking to ensure that all symbols in shared scope and namespaces
- * are distinct.
+ * <p>Performs basic checking to ensure that all symbols in shared scope and 
+ * namespaces are distinct.
  *
- * <p>Throws an exception if any declaration shares an identifier with another symbol
- * in the same scope.
+ * <p>Throws an exception if any declaration shares an identifier with another 
+ * symbol in the same scope.
  *)
 let rec build_symtbls program =
   index_procs program.procdefs
@@ -88,8 +90,8 @@ and index_procs procs =
 (**
  * Creates a symbol-table entry for a procedure defintion.
  * 
- * <p>First creates symbol-table entries for formal parameters and local variable 
- * declarations, which synthesize attributes about stack allocation.
+ * <p>First creates symbol-table entries for formal parameters and local 
+ * variable declarations, which synthesize attributes about stack allocation.
  *)
 and index_proc proc =
   let proc_id = proc.header.proc_id in
@@ -163,7 +165,8 @@ and index_decls decls proc_id slots_used =
  *   <li>The number of stack slots already allocated to left-siblings.
  * </ul>
  *
- * <p>Returns the total number of stack slots allocated to parameters and local variables.
+ * <p>Returns the total number of stack slots allocated to parameters and local 
+ * variables.
  *)
 and index_decl decl proc_id slots_used =
   let bindings = Hashtbl.find_all ptable proc_id in

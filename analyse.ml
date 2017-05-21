@@ -1,11 +1,30 @@
+(**
+ * File: analyse.ml
+ * Author: Malcolm Karutz (mkarutz@student.unimelb.edu.au)
+ *
+ * This module provides services for static analysis of a Snick AST.
+ *
+ * Static analysis is performed by a set of mutually-recursive functions for 
+ * traversing the Snick AST. The functions are modelled using an L-attributed 
+ * attribute grammar. Each function takes the inherited attributes it requires 
+ * in as parameters, and returns provides synthesized attributes as return 
+ * values.
+ *)
+
 open Ast
 open Symbol
 
+(** 
+ * Traverses a Snick AST and performs semantic analysis checks.
+ *
+ * <p>Throws an exception if any semantic errors are detected.
+ *)
 let rec analyse prog =
   build_symtbls prog ;
   check_main_exists () ;
   check_procs prog.procdefs
 
+(** Checks that a parameterless main procedure is defined. *)
 and check_main_exists () =
   let binding = lookup_proc "main" in
   match binding with
@@ -16,9 +35,6 @@ and check_main_exists () =
     failwith "No main procedure definition."
 
 and check_procs procs =
-  check_procs' procs
-
-and check_procs' procs =
   match procs with
   | [] -> ()
   | curr::rest ->
@@ -26,36 +42,32 @@ and check_procs' procs =
     check_procs rest
 
 and check_proc proc =
-  check_header proc.header ;
   let proc_id = proc.header.proc_id in
-  check_body proc.body proc_id
-
-and check_header header = ()
-
-and check_body body proc_id =
+  let body = proc.body in
   check_decls body.decls proc_id ;
   check_stmts body.stmts proc_id
-  
+
 and check_decls decls proc_id =
   match decls with
   | [] -> ()
   | curr::rest ->
     check_decl curr proc_id ;
     check_decls rest proc_id
-    
+
 and check_decl decl proc_id =
   match decl with
   | VarDecl (dtype, id) -> ()
   | ArrDecl (dtype, id, intervals) ->
     check_intervals intervals
 
+(** Checks that for each interval, m..n, m <= n *)
 and check_intervals intervals =
   match intervals with
   | [] -> ()
   | curr::rest ->
     let m,n = curr in
     if m > n
-    then failwith "Lower bound of interval must be less than or equal to upper bound."
+    then failwith "Lower bound of interval must be <= upper bound."
     else check_intervals rest
 
 and check_stmts stmts proc_id =
@@ -86,6 +98,15 @@ and check_atom_stmt stmt proc_id =
     let _ = check_exprs exprs proc_id in
     check_call_stmt id exprs proc_id
 
+(**
+ * Checks a procdure call statement. Checks that:
+ * <ul>
+ *   <li>The identifier is bound to a procedure definition in the symbol table.
+ *   <li>The number of actual parameters is equal to the declared number of 
+ * formal paramters.
+ *   <li>Each actual parameter is a valid expression and has a valid type.
+ * </ul>
+ *)
 and check_call_stmt id exprs proc_id =
   let binding = lookup_proc id in
   match binding with
@@ -100,7 +121,7 @@ and check_args exprs params proc_id =
   | [], [] -> ()
   | _, []
   | [], _ ->
-    failwith "Number of actual parameters does not match expected number of arguments."
+    failwith "Wrong number of actual parameters."
   | curr::rest, curr'::rest' ->
     check_arg curr curr' proc_id; 
     check_args rest rest' proc_id
@@ -127,13 +148,6 @@ and check_arg expr param proc_id =
     | _ ->
       failwith "Cannot pass rvalue expression by reference."
 
-and check_exprs exprs proc_id =
-  match exprs with
-  | [] -> ()
-  | curr::rest ->
-    let _ = check_expr curr proc_id in
-    check_exprs rest proc_id
-
 and check_parameter_types expected actual = 
   match expected, actual with
   | FloatType, IntType -> ()
@@ -159,7 +173,7 @@ and check_guard stmt proc_id =
   | While (expr, _) ->
     let t = check_expr expr proc_id in
     if t != BoolType
-    then failwith "Guard expression in if and while statements must have type bool."
+    then failwith "Conditions must have type bool."
 
 and check_substmts stmt proc_id =
   match stmt with
@@ -170,6 +184,11 @@ and check_substmts stmt proc_id =
     check_stmts a proc_id;
     check_stmts b proc_id
 
+(**
+ * Checks an expression for semantic errors and performs type inference.
+ *
+ * <p>Annotates the AST node with the inferred type.
+ *)
 and check_expr expr proc_id =
   match expr.expr with
   | ConstExpr const ->
@@ -187,24 +206,14 @@ and check_expr expr proc_id =
     let argtype = check_expr arg proc_id in
     let t = check_unop unop argtype in
     expr.inferred_type <- t ; t
-    
-and check_unop unop argtype = 
-  match unop with
-  | MinusUnop ->
-    begin match argtype with
-    | IntType 
-    | FloatType -> 
-      argtype
-    | _ -> 
-      failwith "Argument to unary minus expression must be number type."
-    end
-  | NotUnop ->
-    begin match argtype with
-    | BoolType -> 
-      BoolType
-    | _ -> 
-      failwith "Argument to negation expression must be of bool type."
-    end
+
+(** Helper for checking a list of expression *)
+and check_exprs exprs proc_id =
+  match exprs with
+  | [] -> ()
+  | curr::rest ->
+    let _ = check_expr curr proc_id in
+    check_exprs rest proc_id
 
 and check_const const =
   match const.value with 
@@ -219,7 +228,31 @@ and check_lvalue lvalue proc_id =
     check_id_expr id proc_id
   | ArrAccess (id, exprs) ->
     check_arr_expr id exprs proc_id
-    
+
+(** 
+ * Checks that the identifier is bound to a local scalar variable in the current 
+ * scope. 
+ *)
+and check_id_expr id proc_id = 
+  let binding = lookup_var proc_id id in
+  match binding with
+  | ScalarVal (dtype, _)
+  | ScalarRef (dtype, _) ->
+    dtype
+  | Array _ ->
+    failwith (Printf.sprintf "Expected subscript following identifier: %s" id)
+  | _ -> 
+    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
+
+(** 
+ * Checks an array access expression. Checks that:
+ * <ul>
+ *  <li>The identifier is bound to a local array in the current scope.
+ *  <li>The number of indices in the subscript list is equal to the number of
+ * dimensions.
+ *  <li>Each index expression has type int.
+ * </ul>
+ *)
 and check_arr_expr id exprs proc_id =
   let _ = check_exprs exprs proc_id in
   let binding = lookup_var proc_id id in
@@ -243,17 +276,15 @@ and check_indices exprs intervals proc_id =
     then check_indices rest rest' proc_id
     else failwith "Expressions in array subscripts must have type int."
 
-and check_id_expr id proc_id = 
-  let binding = lookup_var proc_id id in
-  match binding with
-  | ScalarVal (dtype, _)
-  | ScalarRef (dtype, _) ->
-    dtype
-  | Array _ ->
-    failwith (Printf.sprintf "Expected subscript following array identifier: %s" id)
-  | _ -> 
-    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
-
+(** 
+ * Checks a binary operator expression.
+ * <ul>
+ *  <li>The identifier is bound to a local array in the current scope.
+ *  <li>The number of indices in the subscript list is equal to the number of
+ * dimensions.
+ *  <li>Each index expression has type int.
+ * </ul>
+ *)
 and check_binop binop ltype rtype =
   match binop with
   | OrBinop
@@ -303,3 +334,22 @@ and check_arithmetic_binop ltype rtype =
     FloatType
   | _ ->
     failwith "Incompatible types in arithmetic expression."
+
+(** Checks a unary operator expression *)
+and check_unop unop argtype = 
+  match unop with
+  | MinusUnop ->
+    begin match argtype with
+    | IntType 
+    | FloatType -> 
+      argtype
+    | _ -> 
+      failwith "Argument to unary minus expression must be number type."
+    end
+  | NotUnop ->
+    begin match argtype with
+    | BoolType -> 
+      BoolType
+    | _ -> 
+      failwith "Argument to negation expression must be of bool type."
+    end
