@@ -98,6 +98,13 @@ and check_atom_stmt stmt proc_id =
     let _ = check_exprs exprs proc_id in
     check_call_stmt id exprs proc_id
 
+and check_assign_types ltype rtype = 
+  match ltype, rtype with
+  | FloatType, IntType -> ()
+  | _, _->
+    if ltype != rtype 
+    then failwith "Incompatible types in assignment statement."
+
 (**
  * Checks a procdure call statement. Checks that:
  * <ul>
@@ -155,13 +162,10 @@ and check_parameter_types expected actual =
     if expected != actual 
     then failwith "Incompatible types in procedure call statement."
 
-and check_assign_types ltype rtype = 
-  match ltype, rtype with
-  | FloatType, IntType -> ()
-  | _, _->
-    if ltype != rtype 
-    then failwith "Incompatible types in assignment statement."
-
+(**
+ * Checks if-then, if-then-else, and while statements. Checks that the guard
+ * expression has type bool, then recursively checks sub-statements.
+ *)
 and check_comp_stmt stmt proc_id =
   check_guard stmt proc_id ;
   check_substmts stmt proc_id
