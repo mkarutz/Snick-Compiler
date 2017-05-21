@@ -5,9 +5,6 @@
  * This module provides services for static analysis of a Snick AST.
  *)
 
-open Ast
-open Symbol
-
 exception SemanticError of string
 
 (** 

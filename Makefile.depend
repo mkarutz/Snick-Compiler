@@ -5,7 +5,7 @@ snick.cmx : translate.cmx pprinter.cmx parser.cmx lexer.cmx codegen.cmx \
 parser.cmi : ast.cmo
 pprinter.cmi : ast.cmo
 symbol.cmi : ast.cmo
-analyse.cmi : symbol.cmi ast.cmo
+analyse.cmi : ast.cmo
 translate.cmi : brill.cmo ast.cmo
 codegen.cmi : brill.cmo
 ast.cmo :
