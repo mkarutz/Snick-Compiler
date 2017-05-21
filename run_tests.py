@@ -26,21 +26,22 @@ def run_brill_test(test):
     
     # generate brill code
     with open(TEMP_BRILL_FILE, 'w') as out_file:
-        subprocess.call(['./snick', source_fn], stdout=out_file)
+        status = subprocess.call(['./snick', source_fn], stdout=out_file, stderr=out_file)
     
-    # run brill code    
-    with open(TEMP_TEST_FILE, 'w') as out_file:
-        if not os.path.isfile(input_fn):
-            subprocess.call([
-                './brill', 
-                TEMP_BRILL_FILE
-            ], stdout=out_file)
-        else:
-            with open(input_fn, 'r') as in_file:
+    if status == 0:
+        # run brill code    
+        with open(TEMP_TEST_FILE, 'w') as out_file:
+            if not os.path.isfile(input_fn):
                 subprocess.call([
                     './brill', 
                     TEMP_BRILL_FILE
-                ], stdin=in_file, stdout=out_file)
+                ], stdout=out_file)
+            else:
+                with open(input_fn, 'r') as in_file:
+                    subprocess.call([
+                        './brill', 
+                        TEMP_BRILL_FILE
+                    ], stdin=in_file, stdout=out_file)
     
     # diff program output
     with open(TEMP_DIFF_FILE, 'w') as diff_file:

@@ -1,0 +1,15 @@
+## All defined procedures must have distinct names
+
+proc foo ()
+
+    write "foo";
+end
+
+proc foo ()
+
+    write "bar";
+end
+
+proc main ()
+    foo ();
+end
