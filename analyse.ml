@@ -125,7 +125,7 @@ and check_call_stmt id exprs proc_id =
     let params = proc.params in
     check_args exprs params proc_id
   | UnboundProc ->
-    error (Printf.sprintf "Call to undeclared procedure with id %s." id)
+    Printf.sprintf "Call to undeclared procedure with id %s." id |> error
 
 and check_args exprs params proc_id =
   match exprs, params with
@@ -248,9 +248,9 @@ and check_id_expr id proc_id =
   | ScalarRef (dtype, _) ->
     dtype
   | Array _ ->
-    error (Printf.sprintf "Expected subscript following identifier: %s" id)
+    Printf.sprintf "Expected subscript following identifier: %s" id |> error
   | _ -> 
-    error (Printf.sprintf "Use of undeclared variable: %s" id)
+    Printf.sprintf "Use of undeclared variable: %s" id |> error
 
 (** 
  * Checks an array access expression. Checks that:
@@ -271,7 +271,7 @@ and check_arr_expr id exprs proc_id =
   | ScalarVal _
   | ScalarRef _
   | UnboundVar -> 
-    error (Printf.sprintf "Use of undeclared variable: %s" id)
+    Printf.sprintf "Use of undeclared variable: %s" id |> error
   
 and check_indices exprs intervals proc_id =
   match exprs, intervals with

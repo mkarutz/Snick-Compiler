@@ -27,8 +27,14 @@ let new_label () =
  * unexpected errors are encountered.
  *)
 let rec translate prog = 
-  let prelude = [ Call "main"; Halt ] in
-  prelude @ trans_procs prog.procdefs
+  let prelude = [ Call "main" ; Halt ] in
+  let epilogue = [ 
+    Label "error" ; 
+    StringConst (0, "\"Runtime error!\"") ; 
+    CallBuiltin PrintString ; 
+    Halt 
+  ] in
+  prelude @ trans_procs prog.procdefs @ epilogue
 
 and trans_procs procs =
   match procs with
@@ -135,18 +141,18 @@ and init_slot slotnum dtype =
 (* Statements *)
 (*============*)
 
-and trans_stmts stmts proc_id =
-  match stmts with
-  | [] -> []
-  | curr::rest ->
-    trans_stmt curr proc_id @ trans_stmts rest proc_id
-
 and trans_stmt stmt proc_id =
   match stmt with
   | AtomStmt atom_stmt ->
     trans_atom_stmt atom_stmt proc_id
   | CompStmt comp_stmt ->
     trans_comp_stmt comp_stmt proc_id
+
+and trans_stmts stmts proc_id =
+  match stmts with
+  | [] -> []
+  | curr::rest ->
+    trans_stmt curr proc_id @ trans_stmts rest proc_id
     
 and trans_atom_stmt stmt proc_id =
   match stmt with
@@ -208,17 +214,40 @@ and trans_store_array id exprs proc_id reg =
   | _ ->
     failwith "Fatal compiler error."
 
+(**
+ * Generates brill code for accessing arrays. The code performs the following
+ * operations:
+ * <ol>
+ *   <li>Loads address of first element (greatest address) into a register.
+ *   <li>Computes offset.
+ *   <li>Checks for out of bound errors at runtime.
+ *   <li>Subtracts the offset from the array address.
+ * </ol>
+ *)
 and trans_array_addr slotnum exprs intervals proc_id reg =
   let reg' = reg + 1 in
   [ LoadAddress (reg, slotnum) ] @ 
   trans_array_exprs exprs intervals proc_id reg' @
+  array_bounds_check reg' intervals @
   [ SubOffset (reg, reg, reg') ]
-  
+
+(**
+ * Generates brill code for computing an array offset.
+ *
+ * <p>For each expression in the expression list, generates code to:
+ * <ol>
+ *   <li>Evaluate the expression into a register.
+ *   <li>Subtract the interval lower bound to get an offset.
+ *   <li>Multiply by the size of the elements in the dimension.
+ *   <li>Add the value of the next offset.
+ * </ol>
+ *)
 and trans_array_exprs exprs intervals proc_id reg = 
   match exprs, intervals with
   | [],[] ->
     []
   | curr::[], curr'::[] ->
+    (* avoid multiplying by 1 for a 1-D array *)
     trans_expr curr proc_id reg @
     sub_interval_offset curr curr' reg
   | curr::rest, curr'::rest' ->
@@ -230,7 +259,20 @@ and trans_array_exprs exprs intervals proc_id reg =
     [ AddInt (reg, reg, reg') ]
   | _ ->
     failwith "Fatal compiler error."
-    
+
+and array_bounds_check reg intervals =
+  let size = intervals_size intervals in
+  let reg' = reg + 1 in
+  let reg'' = reg' + 1 in
+  [ 
+    IntConst (reg', string_of_int size) ; 
+    IntConst (reg'', "0") ;
+    CmpGeInt (reg', reg, reg') ; 
+    CmpLtInt (reg'', reg, reg'') ; 
+    Or (reg', reg', reg'') ;
+    BranchOnTrue (reg', "error") 
+  ]
+
 and sub_interval_offset expr interval reg =
   let reg' = reg + 1 in
   let (lower, _) = interval in

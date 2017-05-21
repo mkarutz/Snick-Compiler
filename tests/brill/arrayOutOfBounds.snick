@@ -1,0 +1,5 @@
+proc main ()
+    int a[0..9];
+
+    write a[10];
+end
