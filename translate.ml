@@ -43,7 +43,14 @@ and trans_procs procs =
     trans_proc curr @ trans_procs rest
 
 (**
- * Translates a Snick procedure into Brill code.
+ * Translates a Snick procedure into Brill code. Generates the following code:
+ * <ol>
+ *   <li>The prologue pushes a frame on the stack, and stores actual parameters 
+ * into stack slots.
+ *   <li>The decls section initializes local variables.
+ *   <li>The stmts section contains code for executing the body of the proc.
+ *   <li>The epilogue cleans up the stack and returns to the calling site.
+ * </ol>
  *)
 and trans_proc proc =
   let proc_id = proc.header.proc_id in
@@ -83,10 +90,6 @@ and store_params num_params =
 
 and proc_epilogue stack_slots = 
   [ PopStackFrame stack_slots ; Return ]
-
-(*==============*)
-(* Declarations *)
-(*==============*)
 
 and trans_decls decls proc_id =
   match decls with
@@ -137,10 +140,7 @@ and init_slot slotnum dtype =
   | _ ->
     failwith "Fatal compiler error."
 
-(*============*)
-(* Statements *)
-(*============*)
-
+(** Translates a Snick statement into Brill code *)
 and trans_stmt stmt proc_id =
   match stmt with
   | AtomStmt atom_stmt ->
@@ -365,16 +365,31 @@ and trans_arg arg proc_id param place =
       trans_load_address lvalue proc_id place
     | _ -> failwith "Fatal compiler error."
 
-(*=============*)
-(* Expressions *)
-(*=============*)
+(**
+ * Generates code for upgrading an int to a float in an assignment or procedure
+ * call statement. 
+ *)
+and trans_maybe_type_cast var_t expr_t place =
+  match var_t, expr_t with
+  | FloatType, IntType ->
+    [ IntToReal (place, place) ]
+  | _ -> []
 
+
+(** 
+ * Generates Brill code for evaluating a Snick expression into the given 
+ * register.
+ *
+ * <p>Recursively generates code for evaluating subexpressions into 
+ * auxillery registers (possibly reconciling types with type casts) and finally 
+ * emits an operation for evaluating the operation. 
+ *)
 and trans_expr expr proc_id place =
   match expr.expr with
   | ConstExpr const ->
     trans_const_expr const place
   | LvalueExpr lvalue ->
-    trans_load lvalue proc_id place
+    trans_lvalue_expr lvalue proc_id place
   | BinopExpr (lhs, binop, rhs) ->
     let lt = lhs.inferred_type in
     let rt = rhs.inferred_type in
@@ -392,22 +407,26 @@ and trans_expr expr proc_id place =
     | MinusUnop ->
       trans_minus arg proc_id place
 
-and reconcile_types t1 t2 =
-  match t1, t2 with
-  | IntType, FloatType
-  | FloatType, IntType ->
-    FloatType
-  | _ ->
-    t1 (* t1 and t2 are equal *)
+and trans_const_expr const place =
+  match const.value with
+  | Boolean x ->
+    [ IntConst (place, if x then "1" else "0") ]
+  | Float _ ->
+    [ RealConst (place, const.raw) ]
+  | Integer _ ->
+    [ IntConst (place, const.raw) ]
+  | String _ ->
+    [ StringConst (place, const.raw) ]
 
-and trans_load lvalue proc_id reg =
+(** Generates code for loading a scalar value from a lvalue expression. *)
+and trans_lvalue_expr lvalue proc_id reg =
   match lvalue with
   | Id id ->
-    trans_scalar_expr id proc_id reg
+    trans_id_expr id proc_id reg
   | ArrAccess (id, exprs) ->
     trans_array_expr id exprs proc_id reg
 
-and trans_scalar_expr id proc_id reg = 
+and trans_id_expr id proc_id reg = 
   let binding = Symbol.lookup_var proc_id id in
   match binding with
   | ScalarVal (_, slotnum) ->
@@ -428,7 +447,7 @@ and trans_array_expr id exprs proc_id reg =
   | ScalarRef _
   | UnboundVar ->
     failwith "Fatal compiler error."
-  
+
 and trans_load_address lvalue proc_id reg =
   let id = Ast.get_id lvalue in
   let binding = Symbol.lookup_var proc_id id in
@@ -441,33 +460,18 @@ and trans_load_address lvalue proc_id reg =
   | UnboundVar -> 
     failwith "Fatal compiler error."
 
-and trans_maybe_type_cast var_t expr_t place =
-  match var_t, expr_t with
-  | FloatType, IntType ->
-    [ IntToReal (place, place) ]
-  | _ -> []
-
-and maybe_type_cast binop t t' place =
-  match binop with
-  | LtBinop
-  | GtBinop
-  | LteBinop
-  | GteBinop
-  | AddBinop
-  | SubBinop
-  | MulBinop
-  | DivBinop ->
-    if t' == FloatType && t == IntType
-    then [ IntToReal (place, place) ]
-    else []
-  | _ -> []
-
+(**
+ * Generates brill code for performing a binary operation on two registers.
+ *
+ * <p>Assumes that the types have already been reconciled and both registers
+ * contain values of type t.
+ *)
 and trans_binop binop t dest lhs rhs =
   match binop with
   | OrBinop ->
-    trans_logical_or dest lhs rhs
+    trans_or dest lhs rhs
   | AndBinop ->
-    trans_logical_and dest lhs rhs
+    trans_and dest lhs rhs
   | EqBinop ->
     trans_eq t dest lhs rhs
   | NeBinop ->
@@ -489,10 +493,10 @@ and trans_binop binop t dest lhs rhs =
   | DivBinop ->
     trans_div t dest lhs rhs
     
-and trans_logical_or dest lhs rhs =
+and trans_or dest lhs rhs =
   [ Or (dest, lhs, rhs) ]
   
-and trans_logical_and dest lhs rhs =
+and trans_and dest lhs rhs =
   [ And (dest, lhs, rhs) ]
   
 and trans_eq t dest lhs rhs =
@@ -589,17 +593,6 @@ and trans_div t dest lhs rhs =
   | _ -> 
     failwith "Fatal compiler error."
 
-and trans_const_expr const place =
-  match const.value with
-  | Boolean x ->
-    [ IntConst (place, if x then "1" else "0") ]
-  | Float _ ->
-    [ RealConst (place, const.raw) ]
-  | Integer _ ->
-    [ IntConst (place, const.raw) ]
-  | String _ ->
-    [ StringConst (place, const.raw) ]
-
 and trans_logical_not arg proc_id place =
   trans_expr arg proc_id place @
   [ Not (place, place) ]
@@ -619,16 +612,26 @@ and trans_minus arg proc_id place =
       failwith "Fatal compiler error."
   end
 
-(* Debugging util *)
-let print_type t = 
-  match t with
-  | IntType ->
-    Printf.printf("int\n");
-  | FloatType ->
-    Printf.printf("float\n");
-  | BoolType ->
-    Printf.printf("bool\n");
-  | UnknownType ->
-    Printf.printf("unknown\n")
-  | StringType ->
-    Printf.printf("string\n")
+and reconcile_types t1 t2 =
+  match t1, t2 with
+  | IntType, FloatType
+  | FloatType, IntType ->
+    FloatType
+  | _ ->
+    t1 (* t1 and t2 are equal *)
+
+(* Generates code for upgrading an int to a float in a binary expression. *)
+and maybe_type_cast binop t t' place =
+  match binop with
+  | LtBinop
+  | GtBinop
+  | LteBinop
+  | GteBinop
+  | AddBinop
+  | SubBinop
+  | MulBinop
+  | DivBinop ->
+    if t' == FloatType && t == IntType
+    then [ IntToReal (place, place) ]
+    else []
+  | _ -> []
