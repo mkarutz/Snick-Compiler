@@ -13,20 +13,6 @@ open Symbol
 module AST = Ast
 module IR = Brill
 
-(* Debugging util *)
-let print_type t = 
-  match t with
-  | IntType ->
-    Printf.printf("int\n");
-  | FloatType ->
-    Printf.printf("float\n");
-  | BoolType ->
-    Printf.printf("bool\n");
-  | UnknownType ->
-    Printf.printf("unknown\n")
-  | StringType ->
-    Printf.printf("string\n")
-
 let label_counter = ref 0
 
 let new_label () = 
@@ -34,6 +20,12 @@ let new_label () =
   label_counter := !label_counter + 1 ;
   Printf.sprintf "label%d" label
 
+(**
+ * Translates a Snick AST to a Brill program.
+ *
+ * <p>Expects that static analysis has been performed and will fail if any
+ * unexpected errors are encountered.
+ *)
 let rec translate prog = 
   let prelude = [ Call "main"; Halt ] in
   prelude @ trans_procs prog.procdefs
@@ -44,6 +36,9 @@ and trans_procs procs =
   | curr::rest ->
     trans_proc curr @ trans_procs rest
 
+(**
+ * Translates a Snick procedure into Brill code.
+ *)
 and trans_proc proc =
   let proc_id = proc.header.proc_id in
   let num_params = get_num_params proc in
@@ -61,7 +56,7 @@ and get_num_stack_slots proc =
   | Procedure proc -> 
     proc.stack_slots
   | UnboundProc ->
-    failwith "Fatal error"
+    failwith "Fatal compiler error."
     
 and get_num_params proc =
   let proc_id = proc.header.proc_id in
@@ -70,7 +65,7 @@ and get_num_params proc =
   | Procedure proc -> 
     proc.num_params
   | UnboundProc ->
-    failwith "Fatal error"
+    failwith "Fatal compiler error."
 
 and proc_prologue proc_id num_params stack_slots =
   [ Label proc_id ; PushStackFrame stack_slots ] @
@@ -107,7 +102,7 @@ and trans_var_decl id dtype proc_id =
   | ScalarVal (_, slotnum) ->
     init_slot slotnum dtype
   | _ ->
-    failwith "error"
+    failwith "Fatal compiler error."
 
 and trans_arr_decl id dtype proc_id =
   let binding = lookup_var proc_id id in
@@ -116,7 +111,7 @@ and trans_arr_decl id dtype proc_id =
     let size = intervals_size intervals in
     init_slots slotnum size dtype
   | _ ->
-    failwith "error"
+    failwith "Fatal compiler error."
     
 and init_slots slotnum size dtype =
   if size == 0 then 
@@ -134,7 +129,7 @@ and init_slot slotnum dtype =
   | FloatType ->
     [ RealConst (reg, "0.0") ; Store (slotnum, reg) ]
   | _ ->
-    failwith "error"
+    failwith "Fatal compiler error."
 
 (*============*)
 (* Statements *)
@@ -183,7 +178,7 @@ and get_params proc_id =
   | Procedure proc -> 
     proc.params
   | UnboundProc ->
-    failwith "Fatal error"
+    failwith "Fatal compiler error."
 
 and trans_store lvalue proc_id reg =
   match lvalue with
@@ -201,7 +196,7 @@ and trans_store_scalar id proc_id reg =
     let reg' = reg + 1 in
     [ Load (reg', slotnum) ; StoreIndirect (reg', reg) ]
   | _ ->
-    failwith "Fatal error"
+    failwith "Fatal compiler error."
     
 and trans_store_array id exprs proc_id reg =
   let binding = Symbol.lookup_var proc_id id in
@@ -211,7 +206,7 @@ and trans_store_array id exprs proc_id reg =
     trans_array_addr slotnum exprs intervals proc_id reg' @
     [ StoreIndirect (reg', reg) ]
   | _ ->
-    failwith "Fatal error"
+    failwith "Fatal compiler error."
 
 and trans_array_addr slotnum exprs intervals proc_id reg =
   let reg' = reg + 1 in
@@ -234,7 +229,7 @@ and trans_array_exprs exprs intervals proc_id reg =
     trans_array_exprs rest rest' proc_id reg' @
     [ AddInt (reg, reg, reg') ]
   | _ ->
-    failwith ""
+    failwith "Fatal compiler error."
     
 and sub_interval_offset expr interval reg =
   let reg' = reg + 1 in
@@ -256,7 +251,7 @@ and trans_read_stmt t =
     [ CallBuiltin ReadReal ]
   | StringType
   | UnknownType ->
-    failwith "Fatal error."
+    failwith "Fatal compiler error."
 
 and trans_write_stmt t =
   match t with
@@ -269,7 +264,7 @@ and trans_write_stmt t =
   | StringType ->
     [ CallBuiltin PrintString ]
   | UnknownType ->
-    failwith "Fatal error."
+    failwith "Fatal compiler error."
 
 and trans_comp_stmt stmt proc_id =
   match stmt with
@@ -314,7 +309,7 @@ and trans_args args proc_id params place =
   | arg::args, param::params ->
     trans_arg arg proc_id param place @
     trans_args args proc_id params (place + 1)
-  | _ -> failwith "error"
+  | _ -> failwith "Fatal compiler error."
   
 and trans_arg arg proc_id param place =
   match param.mode with
@@ -326,7 +321,7 @@ and trans_arg arg proc_id param place =
     match arg.expr with
     | LvalueExpr lvalue -> 
       trans_load_address lvalue proc_id place
-    | _ -> failwith "error"
+    | _ -> failwith "Fatal compiler error."
 
 (*=============*)
 (* Expressions *)
@@ -379,7 +374,7 @@ and trans_scalar_expr id proc_id reg =
     [ Load (reg, slotnum) ; LoadIndirect (reg, reg) ]
   | Array _
   | UnboundVar ->
-    failwith "error."
+    failwith "Fatal compiler error."
 
 and trans_array_expr id exprs proc_id reg =
   let binding = Symbol.lookup_var proc_id id in
@@ -390,7 +385,7 @@ and trans_array_expr id exprs proc_id reg =
   | ScalarVal _
   | ScalarRef _
   | UnboundVar ->
-    failwith "error."
+    failwith "Fatal compiler error."
   
 and trans_load_address lvalue proc_id reg =
   let id = Ast.get_id lvalue in
@@ -402,7 +397,7 @@ and trans_load_address lvalue proc_id reg =
     [ Load (reg, slotnum) ]
   | Array _
   | UnboundVar -> 
-    failwith "Error"
+    failwith "Fatal compiler error."
 
 and trans_maybe_type_cast var_t expr_t place =
   match var_t, expr_t with
@@ -467,7 +462,7 @@ and trans_eq t dest lhs rhs =
   | BoolType ->
     [ CmpEqInt (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (=)."
+    failwith "Fatal compiler error."
 
 and trans_ne t dest lhs rhs =
   match t with
@@ -478,7 +473,7 @@ and trans_ne t dest lhs rhs =
   | BoolType ->
     [ CmpNeInt (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (!=)."
+    failwith "Fatal compiler error."
     
 and trans_lt t dest lhs rhs =
   match t with
@@ -487,7 +482,7 @@ and trans_lt t dest lhs rhs =
   | FloatType ->
     [ CmpLtReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (<)."
+    failwith "Fatal compiler error."
 
 and trans_le t dest lhs rhs =
   match t with
@@ -496,7 +491,7 @@ and trans_le t dest lhs rhs =
   | FloatType ->
     [ CmpLeReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (<=)."
+    failwith "Fatal compiler error."
     
 and trans_gt t dest lhs rhs =
   match t with
@@ -505,7 +500,7 @@ and trans_gt t dest lhs rhs =
   | FloatType ->
     [ CmpGtReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (>)."
+    failwith "Fatal compiler error."
 
 and trans_ge t dest lhs rhs =
   match t with
@@ -514,7 +509,7 @@ and trans_ge t dest lhs rhs =
   | FloatType ->
     [ CmpGeReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (>=)."
+    failwith "Fatal compiler error."
     
 and trans_add t dest lhs rhs =
   match t with
@@ -523,7 +518,7 @@ and trans_add t dest lhs rhs =
   | FloatType ->
     [ AddReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (+)."
+    failwith "Fatal compiler error."
     
 and trans_sub t dest lhs rhs =
   match t with
@@ -532,7 +527,7 @@ and trans_sub t dest lhs rhs =
   | FloatType ->
     [ SubReal (dest, lhs, rhs) ]
   | _ ->
-    failwith "Incompatible types for binary operator (-)."
+    failwith "Fatal compiler error."
     
 and trans_mul t dest lhs rhs =
   match t with
@@ -541,7 +536,7 @@ and trans_mul t dest lhs rhs =
   | FloatType ->
     [ MulReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (*)."
+    failwith "Fatal compiler error."
     
 and trans_div t dest lhs rhs =
   match t with
@@ -550,7 +545,7 @@ and trans_div t dest lhs rhs =
   | FloatType ->
     [ DivReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Incompatible types for binary operator (/)."
+    failwith "Fatal compiler error."
 
 and trans_const_expr const place =
   match const.value with
@@ -570,14 +565,28 @@ and trans_logical_not arg proc_id place =
 and trans_minus arg proc_id place =
   trans_expr arg proc_id place @
   begin
-    (* unary-minus is simulated by multiplication with a constant. *)
+    (* Unary minus is simulated by subtraction from zero. *)
     let t = arg.inferred_type in
     let place' = place + 1 in
     match t with
     | IntType ->
-      [ IntConst (place', "-1") ; MulInt (place, place, place') ]
+      [ IntConst (place', "0") ; SubInt (place, place', place) ]
     | FloatType ->
-      [ RealConst (place', "-1.0") ; MulReal (place, place, place') ]
+      [ RealConst (place', "0.0") ; SubReal (place, place', place) ]
     | _ ->
-      failwith "Incompatible types for unary operator (-)."
+      failwith "Fatal compiler error."
   end
+
+(* Debugging util *)
+let print_type t = 
+  match t with
+  | IntType ->
+    Printf.printf("int\n");
+  | FloatType ->
+    Printf.printf("float\n");
+  | BoolType ->
+    Printf.printf("bool\n");
+  | UnknownType ->
+    Printf.printf("unknown\n")
+  | StringType ->
+    Printf.printf("string\n")

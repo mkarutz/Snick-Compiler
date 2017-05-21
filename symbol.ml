@@ -8,8 +8,7 @@
  * Building the symbol table uses a set of mutually-recursive functions for 
  * traversing the Snick AST. The functions are modelled using an L-attributed 
  * attribute grammar. Each function takes the inherited attributes it requires 
- * in as parameters, and returns provides synthesized attributes as return 
- * values.
+ * in as parameters, and provides synthesized attributes as return values.
  *)
 
 open Ast

@@ -1,9 +1,11 @@
 snick.cmo : translate.cmi pprinter.cmi parser.cmi lexer.cmo codegen.cmi \
-    analyse.cmo
+    analyse.cmi
 snick.cmx : translate.cmx pprinter.cmx parser.cmx lexer.cmx codegen.cmx \
     analyse.cmx
 parser.cmi : ast.cmo
 pprinter.cmi : ast.cmo
+symbol.cmi : ast.cmo
+analyse.cmi : symbol.cmi ast.cmo
 translate.cmi : brill.cmo ast.cmo
 codegen.cmi : brill.cmo
 ast.cmo :
@@ -16,15 +18,15 @@ pprinter.cmo : ast.cmo pprinter.cmi
 pprinter.cmx : ast.cmx pprinter.cmi
 brill.cmo :
 brill.cmx :
-symbol.cmo : ast.cmo
-symbol.cmx : ast.cmx
-analyse.cmo : symbol.cmo ast.cmo
-analyse.cmx : symbol.cmx ast.cmx
-translate.cmo : symbol.cmo brill.cmo ast.cmo translate.cmi
+symbol.cmo : ast.cmo symbol.cmi
+symbol.cmx : ast.cmx symbol.cmi
+analyse.cmo : symbol.cmi ast.cmo analyse.cmi
+analyse.cmx : symbol.cmx ast.cmx analyse.cmi
+translate.cmo : symbol.cmi brill.cmo ast.cmo translate.cmi
 translate.cmx : symbol.cmx brill.cmx ast.cmx translate.cmi
 codegen.cmo : brill.cmo codegen.cmi
 codegen.cmx : brill.cmx codegen.cmi
 snick.cmo : translate.cmi pprinter.cmi parser.cmi lexer.cmo codegen.cmi \
-    analyse.cmo
+    analyse.cmi
 snick.cmx : translate.cmx pprinter.cmx parser.cmx lexer.cmx codegen.cmx \
     analyse.cmx

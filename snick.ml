@@ -13,6 +13,7 @@
  *)
 
 module P = Parser
+open Analyse
 open Printexc
 open Lexing
 
@@ -73,7 +74,8 @@ let _ =
       Analyse.analyse prog ;
       Translate.translate prog |> Codegen.print_code 
   with
-    | Failure msg ->
+    | Failure msg
+    | SemanticError msg ->
       Printf.eprintf "Failure: %s\n" msg ;
       Printf.eprintf "Compilation Failed\n" ;
       exit 1

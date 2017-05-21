@@ -7,12 +7,16 @@
  * Static analysis is performed by a set of mutually-recursive functions for 
  * traversing the Snick AST. The functions are modelled using an L-attributed 
  * attribute grammar. Each function takes the inherited attributes it requires 
- * in as parameters, and returns provides synthesized attributes as return 
- * values.
+ * in as parameters, and provides synthesized attributes as return values.
  *)
 
 open Ast
 open Symbol
+
+exception SemanticError of string
+
+let error msg =
+  SemanticError msg |> raise
 
 (** 
  * Traverses a Snick AST and performs semantic analysis checks.
@@ -30,9 +34,9 @@ and check_main_exists () =
   match binding with
   | Procedure proc ->
     if proc.num_params == 0 then ()
-    else failwith "Main procedure must be parameterless."
+    else error "Main procedure must be parameterless."
   | UnboundProc ->
-    failwith "No main procedure definition."
+    error "No main procedure definition."
 
 and check_procs procs =
   match procs with
@@ -67,7 +71,7 @@ and check_intervals intervals =
   | curr::rest ->
     let m,n = curr in
     if m > n
-    then failwith "Lower bound of interval must be <= upper bound."
+    then error "Lower bound of interval must be <= upper bound."
     else check_intervals rest
 
 and check_stmts stmts proc_id =
@@ -103,7 +107,7 @@ and check_assign_types ltype rtype =
   | FloatType, IntType -> ()
   | _, _->
     if ltype != rtype 
-    then failwith "Incompatible types in assignment statement."
+    then error "Incompatible types in assignment statement."
 
 (**
  * Checks a procdure call statement. Checks that:
@@ -121,14 +125,14 @@ and check_call_stmt id exprs proc_id =
     let params = proc.params in
     check_args exprs params proc_id
   | UnboundProc ->
-    failwith (Printf.sprintf "Call to undeclared procedure with id %s." id)
+    error (Printf.sprintf "Call to undeclared procedure with id %s." id)
 
 and check_args exprs params proc_id =
   match exprs, params with
   | [], [] -> ()
   | _, []
   | [], _ ->
-    failwith "Wrong number of actual parameters."
+    error "Wrong number of actual parameters."
   | curr::rest, curr'::rest' ->
     check_arg curr curr' proc_id; 
     check_args rest rest' proc_id
@@ -148,19 +152,19 @@ and check_arg expr param proc_id =
         let paramtype = param.dtype in
         let exprtype = expr.inferred_type in
         if paramtype != exprtype
-        then failwith "Type mismatch passing by reference."
+        then error "Type mismatch passing by reference."
       | ArrAccess _ ->
-        failwith "Cannot pass arrays by reference"
+        error "Cannot pass arrays by reference"
       end
     | _ ->
-      failwith "Cannot pass rvalue expression by reference."
+      error "Cannot pass rvalue expression by reference."
 
 and check_parameter_types expected actual = 
   match expected, actual with
   | FloatType, IntType -> ()
   | _, _->
     if expected != actual 
-    then failwith "Incompatible types in procedure call statement."
+    then error "Incompatible types in procedure call statement."
 
 (**
  * Checks if-then, if-then-else, and while statements. Checks that the guard
@@ -177,7 +181,7 @@ and check_guard stmt proc_id =
   | While (expr, _) ->
     let t = check_expr expr proc_id in
     if t != BoolType
-    then failwith "Conditions must have type bool."
+    then error "Conditions must have type bool."
 
 and check_substmts stmt proc_id =
   match stmt with
@@ -244,9 +248,9 @@ and check_id_expr id proc_id =
   | ScalarRef (dtype, _) ->
     dtype
   | Array _ ->
-    failwith (Printf.sprintf "Expected subscript following identifier: %s" id)
+    error (Printf.sprintf "Expected subscript following identifier: %s" id)
   | _ -> 
-    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
+    error (Printf.sprintf "Use of undeclared variable: %s" id)
 
 (** 
  * Checks an array access expression. Checks that:
@@ -267,18 +271,18 @@ and check_arr_expr id exprs proc_id =
   | ScalarVal _
   | ScalarRef _
   | UnboundVar -> 
-    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
+    error (Printf.sprintf "Use of undeclared variable: %s" id)
   
 and check_indices exprs intervals proc_id =
   match exprs, intervals with
   | [], [] -> ()
   | _, [] | [], _ ->
-    failwith "Wrong number of indices in array subscript expression."
+    error "Wrong number of indices in array subscript expression."
   | curr::rest, _::rest' ->
     let t = curr.inferred_type in
     if t == IntType
     then check_indices rest rest' proc_id
-    else failwith "Expressions in array subscripts must have type int."
+    else error "Expressions in array subscripts must have type int."
 
 (** 
  * Checks a binary operator expression.
@@ -310,13 +314,13 @@ and check_binop binop ltype rtype =
 
 and check_logical_binop ltype rtype =
   if ltype != BoolType || rtype != BoolType
-  then failwith "Arguments of logical operators must have type bool."
+  then error "Arguments of logical operators must have type bool."
   else BoolType
 
 and check_equality_binop ltype rtype =
   if ltype = rtype 
   then BoolType 
-  else failwith "Arguments of equality operators must have the same type."
+  else error "Arguments of equality operators must have the same type."
 
 and check_relational_binop ltype rtype =
   match ltype, rtype with
@@ -326,7 +330,7 @@ and check_relational_binop ltype rtype =
   | FloatType, FloatType ->
     BoolType
   | _ ->
-    failwith "Incompatible types in relational expression."
+    error "Incompatible types in relational expression."
 
 and check_arithmetic_binop ltype rtype =
   match ltype, rtype with
@@ -337,7 +341,7 @@ and check_arithmetic_binop ltype rtype =
   | FloatType, FloatType ->
     FloatType
   | _ ->
-    failwith "Incompatible types in arithmetic expression."
+    error "Incompatible types in arithmetic expression."
 
 (** Checks a unary operator expression *)
 and check_unop unop argtype = 
@@ -348,12 +352,12 @@ and check_unop unop argtype =
     | FloatType -> 
       argtype
     | _ -> 
-      failwith "Argument to unary minus expression must be number type."
+      error "Argument to unary minus expression must be number type."
     end
   | NotUnop ->
     begin match argtype with
     | BoolType -> 
       BoolType
     | _ -> 
-      failwith "Argument to negation expression must be of bool type."
+      error "Argument to negation expression must be of bool type."
     end
