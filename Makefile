@@ -53,6 +53,6 @@ depend: lexer.ml parser.ml
 	$(OCAMLDEP) snick.ml snick.mli $(ALLMODULES:%=%.mli) $(ALLMODULES:%=%.ml) >Makefile.depend
 
 test : snick
-	python run_tests.py
+	python3 run_tests.py
 
 -include Makefile.depend

@@ -27,12 +27,16 @@ let new_label () =
  * unexpected errors are encountered.
  *)
 let rec translate prog = 
-  let prelude = [ Call "main" ; Halt ] in
+  let prelude = [ Call "proc_main" ; Halt ] in
   let epilogue = [ 
-    Label "error" ; 
-    StringConst (0, "\"Runtime error!\"") ; 
+    Label "out_of_bounds" ;
+    StringConst (0, "\"OUT OF BOUNDS\\n\"") ; 
     CallBuiltin PrintString ; 
-    Halt 
+    Halt ;
+    Label "divide_by_zero" ;
+    StringConst (0, "\"DIVIDE BY ZERO\\n\"") ; 
+    CallBuiltin PrintString ; 
+    Halt
   ] in
   prelude @ trans_procs prog.procdefs @ epilogue
 
@@ -81,7 +85,8 @@ and get_num_params proc =
     failwith "Fatal compiler error."
 
 and proc_prologue proc_id num_params stack_slots =
-  [ Label proc_id ; PushStackFrame stack_slots ] @
+  let label = "proc_" ^ proc_id in
+  [ Label label ; PushStackFrame stack_slots ] @
   store_params num_params
 
 and store_params num_params = 
@@ -91,13 +96,50 @@ and store_params num_params =
 and proc_epilogue stack_slots = 
   [ PopStackFrame stack_slots ; Return ]
 
+(** 
+ * Generates Brill code for initializing local variables. 
+ *
+ * <p>The generated code does the following:
+ * <ol>
+ *   <li>If any declarations are of type int or bool, loads 0 into register 0. 
+ *   <li>If any declarations areof  type float, loads 0.0f into register 1. 
+ *   <li>Stores initial values into each local variable stack slot.
+ * </ol>
+ *)
 and trans_decls decls proc_id =
+  maybe_load_int_zero decls @
+  maybe_load_float_zero decls @
+  trans_decls' decls proc_id
+
+and maybe_load_int_zero decls =
+  match decls with
+  | [] -> []
+  | curr::rest ->
+    match curr with
+    | VarDecl (dtype, _)
+    | ArrDecl (dtype, _, _) ->
+      if dtype == IntType || dtype == BoolType 
+      then [ IntConst(0, "0") ]
+      else maybe_load_int_zero rest
+
+and maybe_load_float_zero decls =
+  match decls with
+  | [] -> []
+  | curr::rest ->
+    match curr with
+    | VarDecl (dtype, _)
+    | ArrDecl (dtype, _, _) ->
+      if dtype == FloatType
+      then [ RealConst(1, "0.0") ]
+      else maybe_load_float_zero rest
+
+and trans_decls' decls proc_id =
   match decls with
   | [] -> []
   | curr::rest ->
     trans_decl curr proc_id @
-    trans_decls rest proc_id
-    
+    trans_decls' rest proc_id
+
 and trans_decl decl proc_id =
   match decl with
   | VarDecl (dtype, id) ->
@@ -130,13 +172,12 @@ and init_slots slotnum size dtype =
     init_slots (slotnum + 1) (size - 1) dtype
   
 and init_slot slotnum dtype =
-  let reg = 0 in
   match dtype with
   | IntType
   | BoolType ->
-    [ IntConst (reg, "0") ; Store (slotnum, reg) ]
+    [ Store (slotnum, 0) ]
   | FloatType ->
-    [ RealConst (reg, "0.0") ; Store (slotnum, reg) ]
+    [ Store (slotnum, 1) ]
   | _ ->
     failwith "Fatal compiler error."
 
@@ -173,8 +214,9 @@ and trans_atom_stmt stmt proc_id =
     let reg = 0 in
     trans_expr expr proc_id reg @
     trans_write_stmt expr.inferred_type
-  | Ast.Call (label, exprs) ->
-    let params = get_params label in
+  | Ast.Call (id, exprs) ->
+    let params = get_params id in
+    let label = "proc_" ^ id in
     trans_args exprs proc_id params 0 @
     [ Call label ]
     
@@ -265,12 +307,14 @@ and array_bounds_check reg intervals =
   let reg' = reg + 1 in
   let reg'' = reg' + 1 in
   [ 
+    (* Check if offset is >= to the size of the array. *)
     IntConst (reg', string_of_int size) ; 
+    CmpGeInt (reg', reg, reg') ;
+    (* Check if offset is < zero. *)
     IntConst (reg'', "0") ;
-    CmpGeInt (reg', reg, reg') ; 
     CmpLtInt (reg'', reg, reg'') ; 
     Or (reg', reg', reg'') ;
-    BranchOnTrue (reg', "error") 
+    BranchOnTrue (reg', "out_of_bounds") 
   ]
 
 and sub_interval_offset expr interval reg =
@@ -582,13 +626,29 @@ and trans_mul t dest lhs rhs =
     [ MulReal (dest, lhs, rhs) ]
   | _ -> 
     failwith "Fatal compiler error."
-    
+
+(** 
+  * Generates Brill code for evaluating division expressions.
+  *
+  * <p>The generated code also checks for division by zero at runtime.
+  *)
 and trans_div t dest lhs rhs =
+  let aux = rhs + 1 in
   match t with
   | IntType ->
-    [ DivInt (dest, lhs, rhs) ]
+    [
+      IntConst (aux, "0") ;
+      CmpEqInt (aux, aux, rhs) ;
+      BranchOnTrue (aux, "divide_by_zero") ;
+      DivInt (dest, lhs, rhs)
+    ]
   | FloatType ->
-    [ DivReal (dest, lhs, rhs) ]
+    [ 
+      RealConst (aux, "0.0") ;
+      CmpEqReal (aux, aux, rhs) ;
+      BranchOnTrue (aux, "divide_by_zero") ;
+      DivReal (dest, lhs, rhs) 
+    ]
   | _ -> 
     failwith "Fatal compiler error."
 
