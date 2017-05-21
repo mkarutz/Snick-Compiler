@@ -1,0 +1,4 @@
+proc foo ()
+    int x;
+    write x;
+end

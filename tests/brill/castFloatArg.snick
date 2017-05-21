@@ -1,0 +1,10 @@
+proc main ()
+    int x;
+
+    x := 3;
+    PrintFloat(x);
+end
+
+proc PrintFloat(val float x)
+    write x;
+end

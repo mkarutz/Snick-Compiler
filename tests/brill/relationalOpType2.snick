@@ -1,0 +1,9 @@
+proc main ()
+    int x;
+    bool y;
+
+    x := 1;
+    y := true;
+
+    write x < y;
+end

@@ -75,8 +75,8 @@ let _ =
   with
     | Failure msg ->
       Printf.eprintf "Failure: %s\n" msg ;
-      Printf.eprintf "Compilation failed\n" ;
+      Printf.eprintf "Compilation Failed\n" ;
       exit 1
     | e ->
-      Printf.eprintf "Compilation failed\n" ;
+      Printf.eprintf "Compilation Failed\n" ;
       exit 1

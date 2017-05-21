@@ -27,3 +27,6 @@ brill
 # oasis generated files
 setup.data
 setup.log
+
+.vscode
+

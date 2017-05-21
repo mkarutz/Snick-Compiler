@@ -1,0 +1,7 @@
+proc main ()
+    f(1,2,3);
+end
+
+proc f(val int a, val int b)
+    write a + b;
+end

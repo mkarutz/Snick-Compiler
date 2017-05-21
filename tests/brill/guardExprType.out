@@ -1,0 +1,2 @@
+Failure: Guard expression in if and while statements must have type bool.
+Compilation Failed

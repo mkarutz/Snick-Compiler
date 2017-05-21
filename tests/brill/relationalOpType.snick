@@ -1,0 +1,9 @@
+proc main ()
+    int x;
+    float y;
+
+    x := 2;
+    y := 5.0;
+
+    write x < y;
+end

@@ -1,0 +1,9 @@
+proc main ()
+    int x;
+
+    x := 2;
+
+    if x then
+        write x;
+    fi
+end

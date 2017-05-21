@@ -160,7 +160,7 @@ and trans_atom_stmt stmt proc_id =
     let id = get_id lvalue in
     let t = lookup_type proc_id id in
     trans_expr expr proc_id reg @
-    trans_assign_cast t expr.inferred_type reg @
+    trans_maybe_type_cast t expr.inferred_type reg @
     trans_store lvalue proc_id reg
   | Read lvalue -> 
     let id = Ast.get_id lvalue in
@@ -319,7 +319,9 @@ and trans_args args proc_id params place =
 and trans_arg arg proc_id param place =
   match param.mode with
   | Val ->
-    trans_expr arg proc_id place
+    let t = param.dtype in
+    trans_expr arg proc_id place @
+    trans_maybe_type_cast t arg.inferred_type place
   | Ref ->
     match arg.expr with
     | LvalueExpr lvalue -> 
@@ -402,7 +404,7 @@ and trans_load_address lvalue proc_id reg =
   | UnboundVar -> 
     failwith "Error"
 
-and trans_assign_cast var_t expr_t place =
+and trans_maybe_type_cast var_t expr_t place =
   match var_t, expr_t with
   | FloatType, IntType ->
     [ IntToReal (place, place) ]

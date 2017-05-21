@@ -1,0 +1,9 @@
+proc main ()
+    int x;
+    int y;
+
+    x := 1;
+    y := 2;
+
+    write x and y;
+end

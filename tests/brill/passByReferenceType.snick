@@ -1,0 +1,12 @@
+# Types of actual parameters must be the same as formal parameters when passing
+# by reference
+
+proc main ()
+    int x;
+
+    foo(x);
+end
+
+proc foo (ref float x)
+    write x;
+end

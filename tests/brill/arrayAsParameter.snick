@@ -1,0 +1,9 @@
+proc main ()
+    int x[0..9];
+
+    foo(x);
+end
+
+proc foo(val int x)
+    write x;
+end

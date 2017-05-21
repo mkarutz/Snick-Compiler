@@ -5,7 +5,7 @@ import subprocess
 PPRINTER_TEST_DIR = "tests/pprinter/"
 BRILL_TEST_DIR = "tests/brill/"
 
-TEMP_BRILL_FILE = "run_tests.brill.tmp"
+TEMP_COMPILER_OUT = "run_tests.brill.tmp"
 TEMP_TEST_FILE = "run_tests.out.tmp"
 TEMP_DIFF_FILE = "run_tests.diff.tmp"
 
@@ -25,33 +25,43 @@ def run_brill_test(test):
     source_fn, input_fn, expected_fn = test
     
     # generate brill code
-    with open(TEMP_BRILL_FILE, 'w') as out_file:
+    with open(TEMP_COMPILER_OUT, 'w') as out_file:
         status = subprocess.call(['./snick', source_fn], stdout=out_file, stderr=out_file)
     
+    if status == 1:
+        # diff compiler output
+        with open(TEMP_DIFF_FILE, 'w') as diff_file:
+            subprocess.call([
+                'diff', 
+                '--ignore-trailing-space', 
+                '--strip-trailing-cr', 
+                expected_fn, 
+                TEMP_COMPILER_OUT
+            ], stdout=diff_file)
     if status == 0:
         # run brill code    
         with open(TEMP_TEST_FILE, 'w') as out_file:
             if not os.path.isfile(input_fn):
                 subprocess.call([
                     './brill', 
-                    TEMP_BRILL_FILE
+                    TEMP_COMPILER_OUT
                 ], stdout=out_file)
             else:
                 with open(input_fn, 'r') as in_file:
                     subprocess.call([
                         './brill', 
-                        TEMP_BRILL_FILE
+                        TEMP_COMPILER_OUT
                     ], stdin=in_file, stdout=out_file)
     
-    # diff program output
-    with open(TEMP_DIFF_FILE, 'w') as diff_file:
-        subprocess.call([
-            'diff', 
-            '--ignore-trailing-space', 
-            '--strip-trailing-cr', 
-            expected_fn, 
-            TEMP_TEST_FILE
-        ], stdout=diff_file)
+        # diff program output
+        with open(TEMP_DIFF_FILE, 'w') as diff_file:
+            subprocess.call([
+                'diff', 
+                '--ignore-trailing-space', 
+                '--strip-trailing-cr', 
+                expected_fn, 
+                TEMP_TEST_FILE
+            ], stdout=diff_file)
             
     with open(TEMP_DIFF_FILE, 'r') as diff_file:
         diff = diff_file.read()
@@ -122,7 +132,7 @@ def remove_ifexists(fn):
 def cleanup():
     remove_ifexists(TEMP_TEST_FILE)
     remove_ifexists(TEMP_DIFF_FILE)
-    remove_ifexists(TEMP_BRILL_FILE)
+    remove_ifexists(TEMP_COMPILER_OUT)
 
 if __name__ == "__main__":
     run_tests()
