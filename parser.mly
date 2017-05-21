@@ -186,19 +186,19 @@ expression_:
   | lvalue { LvalueExpr $1 }
   | constant { ConstExpr $1 }
   | expression OR expression { BinopExpr ($1, OrBinop, $3) }
-	| expression AND expression { BinopExpr ($1, AndBinop, $3) }
-	| expression EQ expression { BinopExpr ($1, EqBinop, $3) }
-	| expression NE expression { BinopExpr ($1, NeBinop, $3) }
-	| expression LTE expression { BinopExpr ($1, LteBinop, $3) }
-	| expression GTE expression { BinopExpr ($1, GteBinop, $3) }
-	| expression LT expression { BinopExpr ($1, LtBinop, $3) }
-	| expression GT expression { BinopExpr ($1, GtBinop, $3) }
-	| expression ADD expression { BinopExpr ($1, AddBinop, $3) }
-	| expression MINUS expression { BinopExpr ($1, SubBinop, $3) }
-	| expression MUL expression { BinopExpr ($1, MulBinop, $3) }
-	| expression DIV expression { BinopExpr ($1, DivBinop, $3) }
-	| NOT expression { UnopExpr (NotUnop, $2) }
-	| MINUS expression %prec UMINUS { UnopExpr (MinusUnop, $2) }
+  | expression AND expression { BinopExpr ($1, AndBinop, $3) }
+  | expression EQ expression { BinopExpr ($1, EqBinop, $3) }
+  | expression NE expression { BinopExpr ($1, NeBinop, $3) }
+  | expression LTE expression { BinopExpr ($1, LteBinop, $3) }
+  | expression GTE expression { BinopExpr ($1, GteBinop, $3) }
+  | expression LT expression { BinopExpr ($1, LtBinop, $3) }
+  | expression GT expression { BinopExpr ($1, GtBinop, $3) }
+  | expression ADD expression { BinopExpr ($1, AddBinop, $3) }
+  | expression MINUS expression { BinopExpr ($1, SubBinop, $3) }
+  | expression MUL expression { BinopExpr ($1, MulBinop, $3) }
+  | expression DIV expression { BinopExpr ($1, DivBinop, $3) }
+  | NOT expression { UnopExpr (NotUnop, $2) }
+  | MINUS expression %prec UMINUS { UnopExpr (MinusUnop, $2) }
   | LPAREN expression_ RPAREN { $2 }
 
 constant:
