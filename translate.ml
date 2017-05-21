@@ -375,12 +375,11 @@ and trans_maybe_type_cast var_t expr_t place =
     [ IntToReal (place, place) ]
   | _ -> []
 
-
 (** 
  * Generates Brill code for evaluating a Snick expression into the given 
  * register.
  *
- * <p>Recursively generates code for evaluating subexpressions into 
+ * <p>Recursively generates code for evaluating sub-expressions into 
  * auxillery registers (possibly reconciling types with type casts) and finally 
  * emits an operation for evaluating the operation. 
  *)
