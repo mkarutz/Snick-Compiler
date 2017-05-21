@@ -1,0 +1,20 @@
+proc main()
+    int n;
+    int m;
+
+    write ">";
+    read n;
+    factorial(n, m);
+    write m;
+    write "\n";
+end
+
+proc factorial(val int n, ref int out)
+    int result;
+    if (n = 0) then
+        out := 1;
+    else
+        factorial(n - 1, result);
+        out := n * result;
+    fi
+end

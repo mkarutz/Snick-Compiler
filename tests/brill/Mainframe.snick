@@ -1,0 +1,26 @@
+proc main ()
+    int num;
+
+    write "Enter the number of disks: ";
+    read num;
+    write "The sequence of moves involved in the Tower of Hanoi are:\n";
+    towers(num, 1, 3, 2);
+end
+
+proc towers (val int num, val int frompeg, val int topeg, val int auxpeg)
+    if num != 1 then
+        towers(num - 1, frompeg, auxpeg, topeg);
+        write "Move disk from peg ";
+        write frompeg;
+        write " to peg ";
+        write topeg;
+        write "\n";
+        towers(num - 1, auxpeg, topeg, frompeg);
+    else
+        write "Move disk from peg ";
+        write frompeg;
+        write " to peg ";
+        write topeg;
+        write "\n";
+    fi
+end

@@ -1,0 +1,28 @@
+proc hamlet(val int x)
+	int y;
+	y := x - 1;	
+	if ( x >= 0) then
+	
+		if (x / 2 = 0) then
+			write "to be\n";
+		else
+			write "not to be\n";
+		fi
+		hamlet(y);
+	fi
+end
+proc donate_ram(val int x)
+	# write (x /(x<x));
+  int z;
+  if x < x then z := 1; else z := 0; fi
+	write (x /z);
+end
+
+
+proc main()
+	int x;
+	read x;
+
+	hamlet(x);
+	donate_ram(x);
+end

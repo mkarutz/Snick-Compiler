@@ -1,0 +1,165 @@
+
+# Will print the scoring matrix for the Smith–Waterman local alignment
+# algorithm for the substring "010101" (length 6) and larger string 
+# "00110011001111001100010101000011" (length 32)
+
+# Smith–Waterman algorithm: (https://en.wikipedia.org/wiki/Smith%E2%80%93Waterman_algorithm)
+
+proc main()
+    localAlignment();
+end
+
+proc localAlignment()
+
+    # Declarations
+    # ############
+
+    # The weights for different actions.
+    int deletion; # left
+    int insertion; # top
+    int replacement; # top-left if x[i-1] != y[j-1]
+    int match; # top-left if x[i - 1] == y[j - 1]
+
+    int substring[0..5]; # array with 6 elements to hold the substring we are looking for
+    int string[0..31]; # array with 32 elements to hold the larger string we are searching in
+
+    int substringLength; # the number of "characters" in the substring
+    int stringLength; # the number of "chaarcters" in the larger string
+
+    int numColumns; # the total number of columns in the table
+    int numRows; # the total number of columns in the table
+
+    int table[0..6, 0..32]; # a two dimensional table, 7x33, 1 was added to each dimension for epsilon rows
+
+    int columnPointer;
+    int rowPointer;
+
+    int top;
+    int left;
+    int topLeft;
+    int max;
+
+    # Initial Assignments
+    # ###################
+
+    deletion := -1;
+    insertion := -1;
+    replacement := -1;
+    match := 1;
+
+    substringLength := 6;
+    stringLength := 32;
+
+    numColumns := substringLength + 1;
+    numRows := stringLength + 1;
+
+    columnPointer := 0;
+    rowPointer := 0;
+
+    # substring = [0, 1, 0, 1, 0, 1]
+    substring[0] := 0; substring[1] := 1; substring[2] := 0; substring[3] := 1; 
+    substring[4] := 0; substring[5] := 1;
+
+    # string = [0,0,1,1, 0,0,1,1, 0,0,1,1, 1,1,0,0, 1,1,0,0, 0,1,0,1, 0,1,0,0, 0,0,1,1]
+    string[0] := 0; string[1] := 0; string[2] := 1; string[3] := 1;
+    string[4] := 0; string[5] := 0; string[6] := 1; string[7] := 1;
+    string[8] := 0; string[9] := 0; string[10] := 1; string[11] := 1;
+    string[12] := 1; string[13] := 1; string[14] := 0; string[15] := 0;
+    string[16] := 1; string[17] := 1; string[18] := 0; string[19] := 0;
+    string[20] := 0; string[21] := 1; string[22] := 0; string[23] := 1;
+    string[24] := 0; string[25] := 1; string[26] := 0; string[27] := 0;
+    string[28] := 0; string[29] := 0; string[30] := 1; string[31] := 1;
+
+    # Zero out first row and columns
+    # ##############################
+
+    while columnPointer < numColumns do
+        table[columnPointer, 0] := 0;
+        columnPointer := columnPointer + 1;
+    od
+
+    while rowPointer < numRows do
+        table[0, rowPointer] := 0;
+        rowPointer := rowPointer + 1;
+    od
+
+    # Fill the scoring matrix
+    # #######################
+
+    rowPointer := 1;
+    columnPointer := 1;
+
+    while rowPointer < numRows do
+        while columnPointer < numColumns do
+
+            left := table[columnPointer - 1, rowPointer] + deletion;
+            top := table[columnPointer, rowPointer - 1] + insertion;
+
+            if substring[columnPointer - 1] = string[rowPointer - 1] then
+                topLeft := table[columnPointer - 1, rowPointer - 1] + match;
+            else
+                topLeft := table[columnPointer - 1, rowPointer - 1] + replacement;
+            fi
+            
+            # Find the max of the three values
+            # #################################
+
+            if left > top then
+                # left is greater than top
+
+                if left > topLeft then
+                    # left is greater than top & topLeft 
+                    max := left;
+                else
+                    # topLeft is greater than left, which is also greater than top
+                    max := topLeft;
+                fi
+            else 
+                # top is greater than left
+
+                if top > topLeft then
+                    # top is greater than left & topLeft
+                    max := top;
+                else
+                    # topLeft is greater than top, which is also greater than left
+                    max := topLeft;
+                fi
+            fi
+
+            # Check whether the max is greater than 0
+            # #######################################
+
+            if max < 0 then
+                # 0 is greater, we should use that instead
+                max := 0;
+            fi
+
+            # Assign max to the current cell in the table
+            # ###########################################
+            table[columnPointer, rowPointer] := max;
+
+            columnPointer := columnPointer + 1;
+        od
+
+        rowPointer := rowPointer + 1;
+    od
+
+    # Print the scoring matrix
+    # ########################
+
+    rowPointer := 0;
+
+    while rowPointer < numRows do
+        columnPointer := 0;
+        while columnPointer < numColumns do
+            write table[columnPointer, rowPointer];
+            write " ";
+
+            columnPointer := columnPointer + 1;
+        od
+        rowPointer := rowPointer + 1;
+        write "\n";
+    od
+end
+
+

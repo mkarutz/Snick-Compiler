@@ -1,0 +1,37 @@
+#######################################################################
+# This is a comment. 
+#
+# Created by: O'Harry the Caml
+#     -Wilkins Jia-Jin Leong, leongw1, 637987
+#     -Tuyen Quang Pham, phamtq, 381450
+#     -Jorge Ricardo Pardave Garcia, Jpardave, 710822
+#
+# Simple snick program that calculates x * y^2.
+#
+#######################################################################
+
+
+proc main()
+int x;
+int y;
+int temp;
+
+    write "This will perform X multiplied by Y squared.";
+
+    read x;
+    read y;
+
+    write "\n";
+
+    write "Here is X: ";
+    write x;
+    write " and Y: ";
+    write y;
+    write "\n";
+    write "X multiplied by Y squared is: ";
+
+    temp := x * y * y;
+
+    write temp;
+    write "\n";
+end

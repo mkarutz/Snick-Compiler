@@ -1,0 +1,19 @@
+proc main ()
+    int x;
+    int y;
+    int bigger;
+
+    write "Input two positive integers to compare: ";
+    read x;
+    read y;
+    write "\n";
+    if x < y then
+        bigger := y;
+    else
+        bigger := x;
+    fi
+    write "The bigger one is: ";
+    write bigger;
+    write "\n";
+end
+

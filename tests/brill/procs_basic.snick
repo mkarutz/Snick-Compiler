@@ -1,0 +1,19 @@
+proc main ()
+    int x;
+    
+    f(x);
+    g(x);
+    g(x);
+end
+
+proc f(ref int x)
+    x := x - 1;
+    write x;
+    write "\n";
+end
+
+proc g(val int x)
+    x := x - 1;
+    write x;
+    write "\n";
+end

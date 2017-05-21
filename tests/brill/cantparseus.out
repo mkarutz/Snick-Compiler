@@ -1,0 +1,28 @@
+The expecting value is:4 , Result:4
+The expecting value is:12 , Result:12
+The expecting value is:2 , Result:2
+The expecting value is:3.500000 , Result:3.500000
+The expecting value is:TRUE , Result:TRUE
+The expecting value is:20.000000 , Result:20.000000
+The expecting value is:0 , Result:0
+The expecting value is:30 , Result:30
+The expecting value is:7 , Result:7
+The expecting value is:-1 , Result:-1
+The expecting value is:1 , Result:1
+The expecting value is:12 , Result:12
+The expecting value is:0 , Result:0
+The expecting value is:0.750000 , Result:0.750000
+The expecting value is:0.750000 , Result:0.750000
+The expecting value is:0.750000 , Result:0.750000
+The expecting value is:11 , Result:11
+The expecting value is:-5 , Result:-5
+The expecting value is:FALSE , Result:FALSE
+The expecting value is:TRUE , Result:TRUE
+The expecting value is:FALSE , Result:FALSE
+The expecting value is:TRUE , Result:TRUE
+Correct IF-ELSE
+The expecting value is:555 , Result:555
+The expecting value is:5 , Result:5
+The expecting value is:0 , Result:0
+Input two positive integers to be added up: 
+The result is: 10

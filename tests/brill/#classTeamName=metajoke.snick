@@ -1,0 +1,38 @@
+proc main ()
+    int n;
+    int fn;
+
+    write "Please enter an integer:\n";
+    read n;
+
+    fib(n, fn);
+
+    write fn;
+    write "\n";
+end
+
+# Computes the nth Fibonacci number,
+# iteratively rather than recursively
+proc fib (val int n, ref int fn)
+    int a;
+    int b;
+    
+    a := 1;
+    b := 0;
+
+    while n > 0 do
+        swap(a, b);
+        a := a + b;
+        n := n - 1;
+    od
+
+    fn := b;
+end
+
+# Swaps two integers
+proc swap (ref int x, ref int y)
+    int t;
+    t := x;
+    x := y;
+    y := t;
+end

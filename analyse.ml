@@ -1,4 +1,3 @@
-
 open Ast
 open Symbol
 
@@ -10,10 +9,22 @@ let rec assert_type dtype valid_types =
 
 let rec analyse prog =
   build_symtbls prog ;
+  check_main_exists () ;
   check_procs prog.procdefs
 
+and check_main_exists () =
+  let binding = lookup_proc "main" in
+  match binding with
+  | Procedure proc ->
+    if proc.num_params == 0 then ()
+    else failwith "Main procedure must be parameterless."
+  | UnboundProc ->
+    failwith "No main procedure definition."
+
 and check_procs procs =
-  (* TODO: Check all distinct names. *)
+  check_procs' procs
+
+and check_procs' procs =
   match procs with
   | [] -> ()
   | curr::rest ->
@@ -68,7 +79,14 @@ and check_atom_stmt stmt proc_id =
   | Write expr -> 
     let _ = check_expr expr proc_id in ()
   | Call (id, exprs) -> 
-    () (* TODO *)
+    let _ = check_exprs exprs proc_id in ()
+
+and check_exprs exprs proc_id =
+  match exprs with
+  | [] -> ()
+  | curr::rest ->
+    let _ = check_expr curr proc_id in
+    check_exprs rest proc_id
 
 and check_assign t1 t2 = 
   match t1, t2 with
@@ -141,15 +159,30 @@ and check_const const =
 
 and check_lvalue lvalue proc_id =
   match lvalue with
-  | Id id
-  | ArrAccess (id, _) ->
-    let binding = lookup_var proc_id id in
-    match binding with
-    | ScalarVal (dtype, _)
-    | ScalarRef (dtype, _) ->
-      dtype
-    | _ -> failwith (Printf.sprintf "Use of undeclared variable: %s" id)
-    (* TODO: arrays type checking *)
+  | Id id ->
+    check_id_expr id proc_id
+  | ArrAccess (id, exprs) ->
+    check_arr_expr id exprs proc_id
+    
+and check_arr_expr id exprs proc_id =
+  let _ = check_exprs exprs proc_id in
+  let binding = lookup_var proc_id id in
+  match binding with
+  | Array (dtype, _, _)->
+    dtype
+  | ScalarVal _
+  | ScalarRef _
+  | UnboundVar -> 
+    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
+    
+and check_id_expr id proc_id = 
+  let binding = lookup_var proc_id id in
+  match binding with
+  | ScalarVal (dtype, _)
+  | ScalarRef (dtype, _) ->
+    dtype
+  | _ -> 
+    failwith (Printf.sprintf "Use of undeclared variable: %s" id)
 
 and check_binop binop ltype rtype =
   match binop with

@@ -12,7 +12,7 @@ type slotnum = int
 type vbinding =
   | ScalarVal of (dtype * slotnum)
   | ScalarRef of (dtype * slotnum)
-  | Array
+  | Array of (dtype * slotnum * interval list)
   | UnboundVar
   
 type proc = {
@@ -39,10 +39,9 @@ let lookup_type proc_id id =
   let record = lookup_var proc_id id in
   match record with
   | ScalarVal (dtype, _)
-  | ScalarRef (dtype, _) ->
+  | ScalarRef (dtype, _)
+  | Array (dtype, _, _) ->
     dtype
-  | Array ->
-    failwith "TODO"
   | UnboundVar ->
     failwith "error"
 
@@ -73,7 +72,12 @@ and index_proc proc =
     num_params = List.length proc.header.params;
     stack_slots = num_slots + num_slots';
   } in
-  Hashtbl.add ptable proc_id binding
+  let bindings = Hashtbl.find_all ptable proc_id in
+  match bindings with
+  | [] ->
+    Hashtbl.add ptable proc_id binding
+  | _ ->
+    failwith (Printf.sprintf "Procedure with name %s redeclared." proc_id)
   
 and index_params params proc_id slots_used =
   match params with
@@ -87,13 +91,19 @@ and index_param param proc_id slots_used =
   let dtype = param.dtype in
   let slot_num = slots_used in
   let slots_used' = slots_used + 1 in
-  match param.mode with
-  | Val ->
-    let binding = ScalarVal (dtype, slot_num) in
-    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
-  | Ref -> 
-    let binding = ScalarRef (dtype, slot_num) in
-    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+  let bindings = Hashtbl.find_all ptable proc_id in
+  match bindings with
+  | [] ->
+    begin match param.mode with
+    | Val ->
+      let binding = ScalarVal (dtype, slot_num) in
+      Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+    | Ref -> 
+      let binding = ScalarRef (dtype, slot_num) in
+      Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+    end
+  | _ ->
+    failwith (Printf.sprintf "Parameter with name %s redeclared." proc_id)
 
 and index_decls decls proc_id slots_used =
   match decls with
@@ -103,12 +113,39 @@ and index_decls decls proc_id slots_used =
     index_decls rest proc_id slots_used'
 
 and index_decl decl proc_id slots_used =
-  match decl with
-  | VarDecl (dtype, id) ->
-    let slot_num = slots_used in
-    let slots_used' = slots_used + 1 in
-    let binding = ScalarVal (dtype, slot_num) in
-    Hashtbl.add vtable (proc_id, id) binding ; slots_used'
-  | ArrDecl _ -> 
-    slots_used
-    (* TODO *)
+  let bindings = Hashtbl.find_all ptable proc_id in
+  match bindings with
+  | [] ->
+    begin match decl with
+    | VarDecl (dtype, id) ->
+      let slot_num = slots_used in
+      let slots_used' = slots_used + 1 in
+      let binding = ScalarVal (dtype, slot_num) in
+      Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+    | ArrDecl (dtype, id, intervals) ->
+      let slot_num = slots_used in
+      let slots_used' = slots_used + intervals_size intervals in
+      let binding = Array (dtype, slot_num, intervals) in
+      Hashtbl.add vtable (proc_id, id) binding ; slots_used'
+    end
+  | _ ->
+    failwith (Printf.sprintf "Local variable with name %s redeclared." proc_id)
+
+(* and get_shape intervals = 
+  match intervals with
+  | [] -> []
+  | curr::rest ->
+    let lower, upper = curr in
+    let tail = get_shape rest in
+    let size' =
+      begin match tail with
+      | [] -> 1
+      | x::_ -> x.size
+      end
+    in
+    let head = {
+      lower = lower;
+      upper = upper;
+      size = (upper - lower + 1) * size';
+    } in
+    head::tail *)

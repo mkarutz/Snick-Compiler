@@ -1,0 +1,19 @@
+proc main ()
+    int a[0..9,0..9];
+    int i;
+    
+    i := 0;
+    while i < 10 do
+        read a[i,i];
+        i := i + 1;
+    od
+    
+    i := 0;
+    while i < 10 do
+        write a[i,i];
+        write " ";
+        i := i + 1;
+    od
+    
+    write "\n";
+end

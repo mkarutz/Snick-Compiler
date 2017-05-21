@@ -1,0 +1,8 @@
+Enter the number of disks: The sequence of moves involved in the Tower of Hanoi are:
+Move disk from peg 1 to peg 3
+Move disk from peg 1 to peg 2
+Move disk from peg 3 to peg 2
+Move disk from peg 1 to peg 3
+Move disk from peg 2 to peg 1
+Move disk from peg 2 to peg 3
+Move disk from peg 1 to peg 3

@@ -113,4 +113,11 @@ let get_id lvalue =
   | Id id
   | ArrAccess (id, _) ->
     id
-  
+
+let rec intervals_size intervals = 
+  match intervals with
+  | [] -> 1
+  | curr::rest ->
+    let (lower, upper) = curr in
+    let size = upper - lower + 1 in
+    size * intervals_size rest

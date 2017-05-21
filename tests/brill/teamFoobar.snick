@@ -1,0 +1,13 @@
+proc main ()
+  int x;
+  float y;
+
+  x := 1;
+  y := 2.0;
+  # test automatic type casting
+  write x / y;
+
+  y := 0.0;
+  # divide-by-zero runtime error
+  write x / y;
+end

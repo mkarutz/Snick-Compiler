@@ -1,0 +1,46 @@
+# read in two coordinates
+# print out the slope of the straight line which comes through the two points
+
+proc main ()
+	float x1;
+	float y1;
+	float x2;
+	float y2;
+	float result;
+
+	write "please enter two coordinates";
+	write "\n";
+
+	write "x1=";
+	read x1;
+	write "\n";
+	write "y1=";
+	read y1;
+	write "\n";
+	write "x2=";
+	read x2;
+	write "\n";
+	write "y2=";
+	read y2;
+	write "\n";
+
+	if x1 = x2 and y1 = y2 then
+		write "invalid input";
+		write "\n";
+	else
+		if y1 = y2 then
+			write "slope = 0";
+			write "\n";	
+		fi
+		if x1 = x2 then
+			write "slope = infinite";
+			write "\n";		
+		fi
+		if x1 != x2 and y1 != y2 then
+			result := (y2-y1)/(x2-x1);	
+			write "slope = ";
+			write result;
+			write "\n";	
+		fi
+	fi
+end

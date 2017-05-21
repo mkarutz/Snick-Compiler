@@ -1,0 +1,81 @@
+#
+# File : nechiko.snick
+# Date : 6 May 2017
+# Authors :
+#        - Prakriti Giri, pgiri, 784333
+#        - Shuyi Sun, shuyis1, 731209
+#        - Yongchul Kim, yongchulk, 750659
+#
+# This program asks the user for two numbers and allows user to choose
+# between the option of either computing the product or the sum of all
+# numbers between the two numbers.
+#
+proc main()
+    int option;
+    int start;
+    int last;
+    int result;
+
+    write "Enter first number: ";
+    read start;
+
+    write "Enter last number: ";
+    read last;
+
+    while last < start do
+        write "Your last number should be greater than your first number.\n";
+        write "Enter last number: ";
+        read last;
+    od
+
+    write "\n";
+    write "0: calculate sum, 1: calculate product\n";
+    write "Select option (0 or 1): ";
+    read option;
+
+    while option < 0 or option > 1 do
+        write "Invalid option chosen.\n";
+        write "Enter 0 to calculate sum, or 1 to calculate product: ";
+        read option;
+    od
+
+    if option = 0 then
+        add(start, last, result);
+        write "The sum of all numbers between ";
+    else
+        product(start, last, result);
+        write "The product of all numbers between ";
+    fi
+
+    write start;
+    write " and ";
+    write last;
+    write " is ";
+    write result;
+    write "\n";
+end
+
+proc add(val int fst, val int lst, ref int sum)
+    int last;
+    last := lst;
+
+    while fst < last do
+        lst := lst + fst;
+        fst := fst + 1;
+    od
+
+    sum := lst;
+
+end
+
+proc product(val int fst, val int lst, ref int prod)
+    int last;
+    last := lst;
+
+    while fst < last do
+        lst := lst * fst;
+        fst := fst + 1;
+    od
+
+    prod := lst;
+end

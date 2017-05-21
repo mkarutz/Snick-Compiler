@@ -1,0 +1,203 @@
+#simple declaration and passing values in the parameter
+proc simple_declaration(val int input_1, val float input_2, val bool input_3)
+
+	int a;
+	float b;
+	bool c;
+
+	a := input_1;
+	assert_int(input_1,a);
+
+	b := input_2;
+	assert_float(input_2,b);
+
+	c := input_3;
+	assert_bool(input_3,c);
+
+	#int must be able to be assigned to float
+	b := 20;
+	assert_float(20.0,b);
+
+end
+
+proc array_process()
+
+	int a[1..20];
+	int b[0..20,2..30,3..40];
+
+	#assign
+	a[2] := 20;
+	b[0,5,20] := 30;
+	
+	a[3] := b[0,5,22];  
+	assert_int(0,a[3]);
+
+	a[4] := b[0,5,20];  
+	assert_int(30,a[4]);
+
+end
+
+proc math_operation()
+
+	#basic math
+	assert_int(3+4,7);
+	assert_int(3- 4,-1);
+	assert_int(-(3- 4),1);
+	assert_int(3*4,12);
+	assert_int(3/4,0);
+
+	#type conversion
+	assert_float(3.0/4.0,0.75);
+	assert_float(3.0/4,0.75);
+	assert_float(3/4.0,0.75);
+
+	#ordering
+	assert_int(3+4*2,11);
+	assert_int(3- 4*2,-5);
+
+end
+
+proc logic_operation()
+
+	bool a;
+
+	assert_bool(false, a);
+	assert_bool(true , true and true );
+	assert_bool(false, true and false  );
+	assert_bool(true ,  true or false and true );
+
+end
+
+proc if_else()
+
+	int a;
+	int j;
+
+	j:=20;
+
+	if a = 0 and j = 20 then
+		a:= 10;
+
+		if a<5 then
+			a := 20;
+		else
+			a := 50;
+			if a < 30 then
+				a := 40;
+			else
+				a := 555;
+				write "Correct IF-ELSE\n";
+			fi
+		fi
+	else
+		a:=20;
+	fi
+
+	assert_int(555,a);
+
+end
+
+proc do_while()
+
+	int i;
+	int j;
+
+	i := 0;
+	j := 1;
+
+	while i < 5 do
+		i := i+1;
+
+		while j < 5 do
+			j := j+1;
+		od
+
+		j := 0;
+	od
+
+	assert_int(5,i);
+	assert_int(0,j);
+
+end
+
+proc read_inputs()
+    int x;
+    int y;
+    int sum;
+
+    write "Input two positive integers to be added up: ";
+
+    read x;
+    read y;
+
+    write "\n";
+
+    sum := x + y;
+
+    write "The result is: ";
+    write sum;
+    write "\n";
+end
+
+proc test_ref(ref int a, ref int b)
+
+	b := b*2;
+	a := a*b;
+
+end
+
+#main procedure
+proc main()
+	int a;
+	int b;
+
+	a:=3;
+	b:=2;
+
+	test_ref(a,b);
+	assert_int(4,b);
+	assert_int(12,a);
+
+	simple_declaration(2,3.5,true);
+	array_process();
+	math_operation();
+	logic_operation();
+	if_else();
+	do_while();
+	read_inputs();
+end
+
+# supportive procedures
+# the left parameter is the expected (correct) value and the second param is the actual result. both sould be exactly the same
+proc assert_int(val int expecting_val,val int value)
+	write "The expecting value is:";
+	write expecting_val;
+	write " , Result:";
+	write value;
+	write "\n";
+end
+
+proc assert_float(val float expecting_val,val float value)
+	write "The expecting value is:";
+	write expecting_val;
+	write " , Result:";
+	write value;
+	write "\n";
+end
+
+proc assert_bool(val bool expecting_val,val bool value)
+	write "The expecting value is:";
+	write_bool(expecting_val);
+	write " , Result:";
+	write_bool(value);
+	write "\n";
+
+end
+
+proc write_bool(val bool expecting_val)
+	if expecting_val = true then
+		write "TRUE";
+	else
+		write "FALSE";
+	fi
+end

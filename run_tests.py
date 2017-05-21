@@ -111,8 +111,8 @@ def run_tests():
         cleanup()
 
     print("===================================================================")
-    print("Tests finished: %d FAILED / %d PASSED"  
-            % (num_failures, num_success))
+    print("Tests finished: %d PASSED / %d FAILED"  
+            % (num_success, num_failures))
 
 def remove_ifexists(fn):
     if os.path.isfile(fn):

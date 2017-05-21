@@ -13,6 +13,20 @@ open Symbol
 module AST = Ast
 module IR = Brill
 
+(* Debugging util *)
+let print_type t = 
+  match t with
+  | IntType ->
+    Printf.printf("int\n");
+  | FloatType ->
+    Printf.printf("float\n");
+  | BoolType ->
+    Printf.printf("bool\n");
+  | UnknownType ->
+    Printf.printf("unknown\n")
+  | StringType ->
+    Printf.printf("string\n")
+
 let label_counter = ref 0
 
 let new_label () = 
@@ -33,14 +47,14 @@ and trans_procs procs =
 and trans_proc proc =
   let proc_id = proc.header.proc_id in
   let num_params = get_num_params proc in
-  let stack_slots = get_stack_slots proc in
-  let prologue = proc_prologue proc_id num_params stack_slots in
-  let epilogue = proc_epilogue stack_slots in
+  let num_stack_slots = get_num_stack_slots proc in
+  let prologue = proc_prologue proc_id num_params num_stack_slots in
+  let epilogue = proc_epilogue num_stack_slots in
   let decls = trans_decls proc.body.decls proc.header.proc_id in
   let stmts = trans_stmts proc.body.stmts proc.header.proc_id in
   prologue @ decls @ stmts @ epilogue
 
-and get_stack_slots proc =
+and get_num_stack_slots proc =
   let proc_id = proc.header.proc_id in
   let binding = lookup_proc proc_id in
   match binding with
@@ -69,6 +83,10 @@ and store_params num_params =
 and proc_epilogue stack_slots = 
   [ PopStackFrame stack_slots ; Return ]
 
+(*==============*)
+(* Declarations *)
+(*==============*)
+
 and trans_decls decls proc_id =
   match decls with
   | [] -> []
@@ -80,8 +98,8 @@ and trans_decl decl proc_id =
   match decl with
   | VarDecl (dtype, id) ->
     trans_var_decl id dtype proc_id
-  | ArrDecl _ ->
-    failwith "TODO"
+  | ArrDecl (dtype, id, _) ->
+    trans_arr_decl id dtype proc_id
     
 and trans_var_decl id dtype proc_id =
   let var = lookup_var proc_id id in
@@ -90,7 +108,23 @@ and trans_var_decl id dtype proc_id =
     init_slot slotnum dtype
   | _ ->
     failwith "error"
+
+and trans_arr_decl id dtype proc_id =
+  let binding = lookup_var proc_id id in
+  match binding with
+  | Array (_, slotnum, intervals) ->
+    let size = intervals_size intervals in
+    init_slots slotnum size dtype
+  | _ ->
+    failwith "error"
     
+and init_slots slotnum size dtype =
+  if size == 0 then 
+    []
+  else 
+    init_slot slotnum dtype @
+    init_slots (slotnum + 1) (size - 1) dtype
+  
 and init_slot slotnum dtype =
   let reg = 0 in
   match dtype with
@@ -101,6 +135,10 @@ and init_slot slotnum dtype =
     [ RealConst (reg, "0.0") ; Store (slotnum, reg) ]
   | _ ->
     failwith "error"
+
+(*============*)
+(* Statements *)
+(*============*)
 
 and trans_stmts stmts proc_id =
   match stmts with
@@ -148,7 +186,13 @@ and get_params proc_id =
     failwith "Fatal error"
 
 and trans_store lvalue proc_id reg =
-  let id = Ast.get_id lvalue in
+  match lvalue with
+  | Id id ->
+    trans_store_scalar id proc_id reg
+  | ArrAccess (id, exprs) ->
+    trans_store_array id exprs proc_id reg
+  
+and trans_store_scalar id proc_id reg =
   let binding = Symbol.lookup_var proc_id id in
   match binding with
   | ScalarVal (_, slotnum) ->
@@ -156,10 +200,51 @@ and trans_store lvalue proc_id reg =
   | ScalarRef (_, slotnum) ->
     let reg' = reg + 1 in
     [ Load (reg', slotnum) ; StoreIndirect (reg', reg) ]
-  | Array ->
-    failwith "TODO: array assignments."
-  | UnboundVar ->
+  | _ ->
     failwith "Fatal error"
+    
+and trans_store_array id exprs proc_id reg =
+  let binding = Symbol.lookup_var proc_id id in
+  match binding with
+  | Array (_, slotnum, intervals) ->
+    let reg' = reg + 1 in
+    trans_array_addr slotnum exprs intervals proc_id reg' @
+    [ StoreIndirect (reg', reg) ]
+  | _ ->
+    failwith "Fatal error"
+
+and trans_array_addr slotnum exprs intervals proc_id reg =
+  let reg' = reg + 1 in
+  [ LoadAddress (reg, slotnum) ] @ 
+  trans_array_exprs exprs intervals proc_id reg' @
+  [ SubOffset (reg, reg, reg') ]
+  
+and trans_array_exprs exprs intervals proc_id reg = 
+  match exprs, intervals with
+  | [],[] ->
+    []
+  | curr::[], curr'::[] ->
+    trans_expr curr proc_id reg @
+    sub_interval_offset curr curr' reg
+  | curr::rest, curr'::rest' ->
+    let reg' = reg + 1 in
+    trans_expr curr proc_id reg @
+    sub_interval_offset curr curr' reg @
+    mul_intervals_size curr rest' reg @
+    trans_array_exprs rest rest' proc_id reg' @
+    [ AddInt (reg, reg, reg') ]
+  | _ ->
+    failwith ""
+    
+and sub_interval_offset expr interval reg =
+  let reg' = reg + 1 in
+  let (lower, _) = interval in
+  [ IntConst (reg', string_of_int lower) ; SubInt (reg, reg, reg') ]
+  
+and mul_intervals_size expr intervals reg =
+  let reg' = reg + 1 in
+  let size = intervals_size intervals in
+  [ IntConst (reg', string_of_int size) ; MulInt (reg, reg, reg') ]
 
 and trans_read_stmt t =
   match t with
@@ -241,6 +326,10 @@ and trans_arg arg proc_id param place =
       trans_load_address lvalue proc_id place
     | _ -> failwith "error"
 
+(*=============*)
+(* Expressions *)
+(*=============*)
+
 and trans_expr expr proc_id place =
   match expr.expr with
   | ConstExpr const ->
@@ -269,18 +358,35 @@ and reconcile_types t1 t2 =
   | IntType, FloatType
   | FloatType, IntType ->
     FloatType
-  | _ -> 
-    t1 (* t1 and t2 must be equal *)
+  | _ ->
+    t1 (* t1 and t2 are equal *)
 
 and trans_load lvalue proc_id reg =
-  let id = Ast.get_id lvalue in
+  match lvalue with
+  | Id id ->
+    trans_scalar_expr id proc_id reg
+  | ArrAccess (id, exprs) ->
+    trans_array_expr id exprs proc_id reg
+
+and trans_scalar_expr id proc_id reg = 
   let binding = Symbol.lookup_var proc_id id in
   match binding with
   | ScalarVal (_, slotnum) ->
     [ Load (reg, slotnum) ]
   | ScalarRef (_, slotnum) ->
-    [ LoadAddress (reg, slotnum) ; LoadIndirect (reg, reg) ]
-  | Array
+    [ Load (reg, slotnum) ; LoadIndirect (reg, reg) ]
+  | Array _
+  | UnboundVar ->
+    failwith "error."
+
+and trans_array_expr id exprs proc_id reg =
+  let binding = Symbol.lookup_var proc_id id in
+  match binding with
+  | Array (_, slotnum, intervals) ->
+    trans_array_addr slotnum exprs intervals proc_id reg @
+    [ LoadIndirect (reg, reg) ]
+  | ScalarVal _
+  | ScalarRef _
   | UnboundVar ->
     failwith "error."
   
@@ -292,7 +398,7 @@ and trans_load_address lvalue proc_id reg =
     [ LoadAddress (reg, slotnum) ]
   | ScalarRef (_, slotnum) ->
     [ Load (reg, slotnum) ]
-  | Array
+  | Array _
   | UnboundVar -> 
     failwith "Error"
 
@@ -359,7 +465,7 @@ and trans_eq t dest lhs rhs =
   | BoolType ->
     [ CmpEqInt (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (=)."
 
 and trans_ne t dest lhs rhs =
   match t with
@@ -370,7 +476,7 @@ and trans_ne t dest lhs rhs =
   | BoolType ->
     [ CmpNeInt (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (!=)."
     
 and trans_lt t dest lhs rhs =
   match t with
@@ -379,34 +485,34 @@ and trans_lt t dest lhs rhs =
   | FloatType ->
     [ CmpLtReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (<)."
 
 and trans_le t dest lhs rhs =
   match t with
   | IntType ->
     [ CmpLeInt (dest, lhs, rhs) ]
   | FloatType ->
-    [ CmpLeInt (dest, lhs, rhs) ]
+    [ CmpLeReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (<=)."
     
 and trans_gt t dest lhs rhs =
   match t with
   | IntType ->
     [ CmpGtInt (dest, lhs, rhs) ]
   | FloatType ->
-    [ CmpGtInt (dest, lhs, rhs) ]
+    [ CmpGtReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (>)."
 
 and trans_ge t dest lhs rhs =
   match t with
   | IntType ->
     [ CmpGeInt (dest, lhs, rhs) ]
   | FloatType ->
-    [ CmpGeInt (dest, lhs, rhs) ]
+    [ CmpGeReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (>=)."
     
 and trans_add t dest lhs rhs =
   match t with
@@ -415,7 +521,7 @@ and trans_add t dest lhs rhs =
   | FloatType ->
     [ AddReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (+)."
     
 and trans_sub t dest lhs rhs =
   match t with
@@ -423,8 +529,8 @@ and trans_sub t dest lhs rhs =
     [ SubInt (dest, lhs, rhs) ]
   | FloatType ->
     [ SubReal (dest, lhs, rhs) ]
-  | _ -> 
-    failwith "Error."
+  | _ ->
+    failwith "Incompatible types for binary operator (-)."
     
 and trans_mul t dest lhs rhs =
   match t with
@@ -433,7 +539,7 @@ and trans_mul t dest lhs rhs =
   | FloatType ->
     [ MulReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (*)."
     
 and trans_div t dest lhs rhs =
   match t with
@@ -442,7 +548,7 @@ and trans_div t dest lhs rhs =
   | FloatType ->
     [ DivReal (dest, lhs, rhs) ]
   | _ -> 
-    failwith "Error."
+    failwith "Incompatible types for binary operator (/)."
 
 and trans_const_expr const place =
   match const.value with
@@ -471,5 +577,5 @@ and trans_minus arg proc_id place =
     | FloatType ->
       [ RealConst (place', "-1.0") ; MulReal (place, place, place') ]
     | _ ->
-      failwith "Error"
+      failwith "Incompatible types for unary operator (-)."
   end
