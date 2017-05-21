@@ -6,8 +6,6 @@
  * table.
  *)
 
-open Ast
-
 type dtype = Ast.dtype
 type slotnum = int
 
@@ -15,13 +13,13 @@ type slotnum = int
 type vbinding =
   | ScalarVal of (dtype * slotnum)
   | ScalarRef of (dtype * slotnum)
-  | Array of (dtype * slotnum * interval list)
+  | Array of (dtype * slotnum * Ast.interval list)
   | UnboundVar
 
 (* A record type holding the details of a procedure definition. *)
 type proc = {
   id : string;
-  params : param_def list;
+  params : Ast.param_def list;
   num_params : int;
   stack_slots : int;
 }
