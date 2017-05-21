@@ -6,14 +6,13 @@
  * table.
  *)
 
-type dtype = Ast.dtype
 type slotnum = int
 
 (* An entry in the variable symbol table. *)
 type vbinding =
-  | ScalarVal of (dtype * slotnum)
-  | ScalarRef of (dtype * slotnum)
-  | Array of (dtype * slotnum * Ast.interval list)
+  | ScalarVal of (Ast.dtype * slotnum)
+  | ScalarRef of (Ast.dtype * slotnum)
+  | Array of (Ast.dtype * slotnum * Ast.interval list)
   | UnboundVar
 
 (* A record type holding the details of a procedure definition. *)
@@ -33,7 +32,7 @@ type pbinding =
 val lookup_var : string -> string -> vbinding
   
 (** Gets the type of a variable from the symbol table. *)
-val lookup_type : string -> string -> dtype
+val lookup_type : string -> string -> Ast.dtype
 
 (** Looks-up a procedure in the symbol table. *)
 val lookup_proc : string -> pbinding

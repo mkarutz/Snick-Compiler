@@ -173,7 +173,7 @@ and trans_atom_stmt stmt proc_id =
     let reg = 0 in
     trans_expr expr proc_id reg @
     trans_write_stmt expr.inferred_type
-  | Call (label, exprs) ->
+  | Ast.Call (label, exprs) ->
     let params = get_params label in
     trans_args exprs proc_id params 0 @
     [ Call label ]

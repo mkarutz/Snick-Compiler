@@ -16,6 +16,7 @@ module P = Parser
 open Analyse
 open Printexc
 open Lexing
+open Utils
 
 (*
  * The Snick compiler has two modes:

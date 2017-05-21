@@ -12,6 +12,7 @@
 
 open Ast
 open Symbol
+open Utils
 
 exception SemanticError of string
 

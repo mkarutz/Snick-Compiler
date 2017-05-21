@@ -13,7 +13,6 @@
 
 open Ast
 
-type dtype = Ast.dtype
 type slotnum = int
 
 (* An entry in the variable symbol table. *)
@@ -94,12 +93,12 @@ and index_procs procs =
  *)
 and index_proc proc =
   let proc_id = proc.header.proc_id in
-  let num_slots = index_params proc.header.params proc_id 0 in
+  let num_slots = index_params proc.header.Ast.params proc_id 0 in
   let num_slots' = index_decls proc.body.decls proc_id num_slots in
   let binding = Procedure {
     id = proc_id;
-    params = proc.header.params;
-    num_params = List.length proc.header.params;
+    params = proc.header.Ast.params;
+    num_params = List.length proc.header.Ast.params;
     stack_slots = num_slots + num_slots';
   } in
   let bindings = Hashtbl.find_all ptable proc_id in
@@ -129,7 +128,7 @@ and index_params params proc_id slots_used =
  * <p>Returns the new number of stack slots used so far.
  *)
 and index_param param proc_id slots_used =
-  let id = param.id in
+  let id = param.Ast.id in
   let dtype = param.dtype in
   let slot_num = slots_used in
   let slots_used' = slots_used + 1 in
